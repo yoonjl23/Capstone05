@@ -5,6 +5,8 @@ import MenuPage from './pages/MenuPage'
 import MirrorPage from './pages/MirrorPage.jsx'
 import GamePage from './pages/GamePage'
 import ResultPage from './pages/ResultPage'
+import CollectionPage from './pages/CollectionPage'
+import StatsPage from './pages/StatsPage'
 
 export default function App() {
   const [view, setView] = useState('login')
@@ -71,6 +73,26 @@ export default function App() {
         setView={setView}
         gameScore={gameScore}
         totalQuestions={5}
+        isMuted={isMuted}
+        setIsMuted={setIsMuted}
+      />
+    )
+  }
+
+  if (view === 'collection') {
+    return (
+      <CollectionPage
+        setView={setView}
+        isMuted={isMuted}
+        setIsMuted={setIsMuted}
+      />
+    )
+  }
+
+  if (view === 'stats') {
+    return (
+      <StatsPage
+        setView={setView}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
       />

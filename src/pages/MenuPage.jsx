@@ -1,4 +1,4 @@
-import { Eye, Gamepad2, BrainCircuit } from 'lucide-react'
+import { Eye, Gamepad2, BrainCircuit, BookOpen,BarChart3 } from 'lucide-react'
 import Layout from '../components/Layout'
 import MenuCard from '../components/MenuCard'
 
@@ -16,7 +16,7 @@ export default function MenuPage({
           오늘은 어떤 놀이를 할까요?
         </h2>
 
-        <div className="grid grid-cols-3 gap-8 w-full max-w-5xl">
+        <div className="grid grid-cols-3 gap-4 w-full max-w-6xl">
           <MenuCard
             icon={<Eye size={64} className="text-blue-500" />}
             title="마음 거울"
@@ -39,6 +39,21 @@ export default function MenuPage({
             desc="상황에 맞는 마음을 추측해봐요"
             color="hover:border-purple-400"
             onClick={onStartInference}
+          />
+
+          <MenuCard
+            icon={<BookOpen size={64} className="text-green-500" />}
+            title="감자 도감"
+            desc="모은 감자 카드를 확인해요"
+            color="hover:border-green-400"
+            onClick={() => setView('collection')}
+          />
+
+          <MenuCard
+           icon={<BarChart3 size={64} className="text-black-500" />}
+            title="학습 통계"
+            desc="내 실력을 확인해요"
+            onClick={() => setView('stats')}
           />
         </div>
       </div>
