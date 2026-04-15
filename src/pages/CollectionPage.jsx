@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import Layout from '../components/Layout'
+import { api } from '../services/api'
 
 import level1 from '../assets/collection/level1.png'
 import level2 from '../assets/collection/level2.png'
@@ -37,8 +39,34 @@ const cardImages = [
 ]
 
 export default function CollectionPage({ setView, isMuted, setIsMuted }) {
-  // 나중에는 백엔드 값으로 교체
-  const unlockedLevel = 5
+  const [unlockedLevel, setUnlockedLevel] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      try {
+        setLoading(true)
+        setErrorMessage('')
+
+        // 지금은 테스트용으로 4번 유저 사용
+        // 나중에는 로그인한 유저의 id로 바꾸면 됨
+        const data = await api.getProgress(4)
+
+        const level = Number(data.level) || 0
+        const safeLevel = Math.max(0, Math.min(level, 16))
+
+        setUnlockedLevel(safeLevel)
+      } catch (error) {
+        console.error('진행도 조회 실패:', error)
+        setErrorMessage(error.message || '도감 정보를 불러오지 못했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProgress()
+  }, [])
 
   return (
     <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
@@ -49,9 +77,15 @@ export default function CollectionPage({ setView, isMuted, setIsMuted }) {
               감자 도감
             </h2>
             <p className="text-gray-500 font-bold">
-              {unlockedLevel} / 16 장의 카드를 모았어요!
+              {loading ? '불러오는 중...' : `${unlockedLevel} / 16 장의 카드를 모았어요!`}
             </p>
           </div>
+
+          {errorMessage && (
+            <div className="mb-6 rounded-2xl bg-red-100 text-red-600 px-5 py-4 font-bold text-center">
+              {errorMessage}
+            </div>
+          )}
 
           <div className="grid grid-cols-4 gap-6">
             {cardImages.map((imageSrc, index) => {
@@ -84,7 +118,7 @@ export default function CollectionPage({ setView, isMuted, setIsMuted }) {
 
                   <div className="px-4 py-3 text-center">
                     <p className="font-black text-gray-700">
-                      {isUnlocked ? `LEVEL ${cardNumber}` : `LEVEL ${cardNumber}`}
+                      LEVEL {cardNumber}
                     </p>
                   </div>
                 </div>
