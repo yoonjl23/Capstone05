@@ -1,12 +1,29 @@
-const BASE_URL = 'http://localhost:8082'
+async function request(url, options = {}) {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+    ...options,
+  })
+
+  const text = await response.text()
+
+  if (!response.ok) {
+    if (response.status === 500) {
+      throw new Error('입력값을 다시 확인해주세요.')
+    }
+
+    throw new Error(text || '요청 처리 중 오류가 발생했습니다.')
+  }
+
+  return text
+}
 
 export const api = {
   register: async ({ userId, password, confirmPassword, username }) => {
-    const response = await fetch(`${BASE_URL}/api/users/register`, {
+    return request('/api/users/register', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         userId,
         password,
@@ -14,46 +31,15 @@ export const api = {
         username,
       }),
     })
-
-    let data = null
-
-    try {
-      data = await response.json()
-    } catch (error) {
-      data = null
-    }
-
-    if (!response.ok) {
-      throw new Error(data?.message || '회원가입에 실패했습니다.')
-    }
-
-    return data
   },
 
   login: async ({ userId, password }) => {
-    const response = await fetch(`${BASE_URL}/api/users/login`, {
+    return request('/api/users/login', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         userId,
         password,
       }),
     })
-
-    let data = null
-
-    try {
-      data = await response.json()
-    } catch (error) {
-      data = null
-    }
-
-    if (!response.ok) {
-      throw new Error(data?.message || '로그인에 실패했습니다.')
-    }
-
-    return data
   },
 }
