@@ -12,6 +12,7 @@ import timm
 from PIL import Image
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from huggingface_hub import hf_hub_download
 
 # ── 로깅 설정 ──────────────────────────────────────────────
 logging.basicConfig(
@@ -21,8 +22,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ── 설정 ───────────────────────────────────────────────────
-SWIN_PATH     = os.environ.get("SWIN_PATH",     "best_model_4class_swin_v2.pth")
-CONVNEXT_PATH = os.environ.get("CONVNEXT_PATH", "best_model_4class_convnext.pth")
+HF_REPO_ID = os.environ.get("HF_REPO_ID", "Ajelly/Capstone05-models")  # 본인 repo로 변경
+
+def get_model_path(filename: str) -> str:
+    """로컬에 있으면 로컬 사용, 없으면 HuggingFace에서 자동 다운로드"""
+    if os.path.exists(filename):
+        logger.info(f"Using local model: {filename}")
+        return filename
+    logger.info(f"Downloading {filename} from HuggingFace repo: {HF_REPO_ID} ...")
+    return hf_hub_download(repo_id=HF_REPO_ID, filename=filename)
+
+SWIN_PATH     = os.environ.get("SWIN_PATH",     get_model_path("best_model_4class_swin_v2.pth"))
+CONVNEXT_PATH = os.environ.get("CONVNEXT_PATH", get_model_path("best_model_4class_convnext.pth"))
 DEVICE        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 IMAGE_SIZE    = 224
 
