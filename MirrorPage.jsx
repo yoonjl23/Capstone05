@@ -31,8 +31,8 @@ export default function MirrorPage({ setView, isMuted, setIsMuted }) {
           videoRef.current.srcObject = stream
         }
 
-        // 1초마다 백엔드에 분석 요청
-        intervalId = setInterval(captureAndAnalyze, 1000)
+        // 0.5초마다 백엔드에 분석 요청
+        intervalId = setInterval(captureAndAnalyze, 500)
       } catch (error) {
         console.error('카메라 실행 실패:', error)
       }
@@ -56,8 +56,6 @@ export default function MirrorPage({ setView, isMuted, setIsMuted }) {
       context.scale(-1, 1)
       context.drawImage(video, -320, 0, 320, 240)
       context.restore()
-
-      intervalId = setInterval(captureAndAnalyze, 500)
 
       const base64Image = canvas.toDataURL('image/jpeg', 0.5)
 
