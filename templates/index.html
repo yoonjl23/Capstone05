@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>아동 미세 표정 분석기</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px 16px;
+        }
+
+        h1 { text-align: center; font-size: 1.6rem; margin-bottom: 6px; color: #fff; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 24px; font-size: 0.88rem; }
+        .container { max-width: 640px; margin: 0 auto; }
+
+        /* 카메라 */
+        .camera-wrap {
+            position: relative; width: 100%;
+            border-radius: 16px; overflow: hidden;
+            background: #000; margin-bottom: 16px; aspect-ratio: 4/3;
+        }
+        #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        canvas { display: none; }
+
+        /* 감정 오버레이 */
+        .emotion-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 16px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.88));
+        }
+        .emotion-main { font-size: 2rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .emotion-conf { font-size: 0.85rem; color: #bbb; margin-bottom: 10px; }
+
+        /* 확률 바 */
+        .prob-bars { display: flex; flex-direction: column; gap: 5px; }
+        .prob-row  { display: flex; align-items: center; gap: 8px; }
+        .prob-label { width: 36px; font-size: 0.75rem; color: #ccc; flex-shrink: 0; text-align: right; }
+        .prob-bar-bg { flex: 1; background: rgba(255,255,255,0.12); border-radius: 4px; height: 10px; overflow: hidden; }
+        .prob-bar { height: 100%; border-radius: 4px; transition: width 0.25s ease; }
+        .prob-val { width: 38px; font-size: 0.72rem; color: #aaa; text-align: right; flex-shrink: 0; }
+
+        .c-positive { background: #2ecc71; }
+        .c-negative { background: #e74c3c; }
+        .c-neutral  { background: #7f8c8d; }
+        .c-surprise { background: #f1c40f; }
+
+        /* 버튼 */
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 1rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; margin-bottom: 10px;
+        }
+        .btn-primary { background: #5b8dee; color: #fff; }
+        .btn-primary:hover { background: #4a7de0; }
+        .btn-danger  { background: #e74c3c; color: #fff; display: none; }
+        .btn-danger:hover { background: #c0392b; }
+
+        /* 상태 뱃지 */
+        .status-wrap { text-align: center; margin-bottom: 12px; }
+        .status-badge { display: inline-block; padding: 5px 16px; border-radius: 20px; font-size: 0.82rem; font-weight: 600; }
+        .s-idle    { background: #2a2d3e; color: #888; }
+        .s-loading { background: #2d2a1a; color: #f39c12; }
+        .s-running { background: #1a2d1a; color: #2ecc71; }
+        .s-error   { background: #2d1a1a; color: #e74c3c; }
+
+        /* 결과 카드 */
+        .result-card { background: #1a1d27; border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+        .result-card h3 { font-size: 0.9rem; color: #aaa; margin-bottom: 12px; border-bottom: 1px solid #2a2d3e; padding-bottom: 8px; }
+
+        /* 통계 */
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+        .stat-item { background: #12151f; border-radius: 10px; padding: 12px; text-align: center; }
+        .stat-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; }
+        .sv-positive { color: #2ecc71; }
+        .sv-negative { color: #e74c3c; }
+        .sv-neutral  { color: #7f8c8d; }
+        .sv-surprise { color: #f1c40f; }
+
+        /* 히스토리 */
+        .history { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+        .history::-webkit-scrollbar { width: 4px; }
+        .history::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        .history-item { display: flex; align-items: center; gap: 10px; background: #12151f; border-radius: 8px; padding: 7px 10px; font-size: 0.83rem; }
+        .h-time  { color: #666; width: 55px; flex-shrink: 0; }
+        .h-badge { padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; color: #fff; }
+        .h-conf  { margin-left: auto; color: #888; }
+
+        .bg-positive { background: #2ecc71; }
+        .bg-negative { background: #e74c3c; }
+        .bg-neutral  { background: #7f8c8d; }
+        .bg-surprise { background: #f1c40f; color: #333 !important; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎭 아동 미세 표정 분석기</h1>
+    <p class="subtitle">Swin + ConvNeXt 앙상블 · 4클래스 실시간 분석</p>
+
+    <!-- 카메라 -->
+    <div class="camera-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="emotion-overlay" id="overlay" style="display:none">
+            <div class="emotion-main" id="emo-main">분석 중...</div>
+            <div class="emotion-conf" id="emo-conf"></div>
+            <div class="prob-bars"   id="prob-bars"></div>
+        </div>
+    </div>
+
+    <!-- 상태 -->
+    <div class="status-wrap">
+        <span class="status-badge s-idle" id="status-badge">⏸ 대기 중</span>
+    </div>
+
+    <!-- 버튼 -->
+    <button class="btn btn-primary" id="btn-start" onclick="startCamera()">📷 카메라 시작</button>
+    <button class="btn btn-danger"  id="btn-stop"  onclick="stopCamera()">⏹ 분석 중지</button>
+
+    <!-- 통계 -->
+    <div class="result-card" id="stats-card" style="display:none">
+        <h3>📊 감정 감지 통계</h3>
+        <div class="stats-grid">
+            <div class="stat-item"><div class="stat-label">😊 긍정</div><div class="stat-value sv-positive" id="cnt-positive">0</div></div>
+            <div class="stat-item"><div class="stat-label">😠 부정</div><div class="stat-value sv-negative" id="cnt-negative">0</div></div>
+            <div class="stat-item"><div class="stat-label">😐 중립</div><div class="stat-value sv-neutral"  id="cnt-neutral" >0</div></div>
+            <div class="stat-item"><div class="stat-label">😲 놀람</div><div class="stat-value sv-surprise" id="cnt-surprise">0</div></div>
+        </div>
+        <div style="text-align:center;color:#888;font-size:0.8rem" id="total-label">총 0회 감지</div>
+    </div>
+
+    <!-- 히스토리 -->
+    <div class="result-card" id="history-card" style="display:none">
+        <h3>⏱️ 최근 감지 기록</h3>
+        <div class="history" id="history"></div>
+    </div>
+</div>
+
+<script>
+const API_URL     = '/predict/frame';
+const INTERVAL_MS = 500;
+const CONF_THRESH = 0.45;
+const MAX_HISTORY = 30;
+
+const EMOTIONS = {
+    positive: { kr: '긍정', emoji: '😊', cls: 'positive' },
+    negative: { kr: '부정', emoji: '😠', cls: 'negative' },
+    neutral:  { kr: '중립', emoji: '😐', cls: 'neutral'  },
+    surprise: { kr: '놀람', emoji: '😲', cls: 'surprise' },
+};
+const PROB_ORDER = ['positive', 'negative', 'neutral', 'surprise'];
+const KR_TO_EN   = { '긍정': 'positive', '부정': 'negative', '중립': 'neutral', '놀람': 'surprise' };
+const EN_TO_KR   = { positive: '긍정', negative: '부정', neutral: '중립', surprise: '놀람' };
+
+let stream = null, intervalId = null, isRunning = false;
+let startTime = null;
+let counts    = { positive: 0, negative: 0, neutral: 0, surprise: 0 };
+let historyList = [];
+
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: 640, height: 480 }, audio: false
+        });
+        document.getElementById('video').srcObject = stream;
+        document.getElementById('btn-start').style.display    = 'none';
+        document.getElementById('btn-stop').style.display     = 'block';
+        document.getElementById('overlay').style.display      = 'block';
+        document.getElementById('stats-card').style.display   = 'block';
+        document.getElementById('history-card').style.display = 'block';
+        setStatus('loading', '⏳ 분석 준비 중...');
+        isRunning   = true;
+        startTime   = new Date();
+        counts      = { positive: 0, negative: 0, neutral: 0, surprise: 0 };
+        historyList = [];
+        intervalId  = setInterval(captureAndSend, INTERVAL_MS);
+    } catch (err) {
+        setStatus('error', '❌ 카메라 접근 실패');
+        alert('카메라 접근 권한이 필요해요.\n브라우저 설정에서 카메라를 허용해주세요.');
+    }
+}
+
+function stopCamera() {
+    isRunning = false;
+    clearInterval(intervalId);
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    document.getElementById('video').srcObject         = null;
+    document.getElementById('btn-start').style.display = 'block';
+    document.getElementById('btn-stop').style.display  = 'none';
+    document.getElementById('overlay').style.display   = 'none';
+    setStatus('idle', '⏸ 대기 중');
+}
+
+async function captureAndSend() {
+    if (!isRunning) return;
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    canvas.width = 320; canvas.height = 240;
+    const ctx = canvas.getContext('2d');
+    ctx.save(); ctx.scale(-1, 1); ctx.drawImage(video, -320, 0, 320, 240); ctx.restore();
+    const base64 = canvas.toDataURL('image/jpeg', 0.75);
+
+    try {
+        const res  = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64 })
+        });
+        if (!res.ok) { setStatus('error', `❌ 서버 오류 (${res.status})`); return; }
+        const data = await res.json();
+        if (data.error) { setStatus('error', `❌ ${data.error}`); return; }
+        setStatus('running', '🟢 분석 중');
+        updateOverlay(data);
+        updateStats(data);
+        addHistory(data);
+    } catch (err) {
+        setStatus('error', '❌ 연결 오류');
+    }
+}
+
+function updateOverlay(data) {
+    const en  = data.emotion_en || KR_TO_EN[data.emotion] || 'neutral';
+    const emo = EMOTIONS[en] || { kr: data.emotion, emoji: '❓', cls: 'neutral' };
+    document.getElementById('emo-main').textContent = `${emo.emoji} ${emo.kr}`;
+    document.getElementById('emo-conf').textContent = `신뢰도: ${(data.confidence * 100).toFixed(1)}%`;
+
+    const barsDiv = document.getElementById('prob-bars');
+    if (data.probabilities) {
+        barsDiv.innerHTML = '';
+        const probs = data.probabilities;
+        PROB_ORDER.forEach(enKey => {
+            const krKey = EN_TO_KR[enKey];
+            const val   = probs[krKey] ?? probs[enKey] ?? 0;
+            const pct   = (val * 100).toFixed(1);
+            barsDiv.innerHTML += `
+                <div class="prob-row">
+                    <div class="prob-label">${EMOTIONS[enKey].emoji}</div>
+                    <div class="prob-bar-bg">
+                        <div class="prob-bar c-${enKey}" style="width:${pct}%"></div>
+                    </div>
+                    <div class="prob-val">${pct}%</div>
+                </div>`;
+        });
+    }
+}
+
+function updateStats(data) {
+    if (data.confidence < CONF_THRESH) return;
+    const en = data.emotion_en || KR_TO_EN[data.emotion];
+    if (en && counts[en] !== undefined) counts[en]++;
+    document.getElementById('cnt-positive').textContent = counts.positive;
+    document.getElementById('cnt-negative').textContent = counts.negative;
+    document.getElementById('cnt-neutral').textContent  = counts.neutral;
+    document.getElementById('cnt-surprise').textContent = counts.surprise;
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    document.getElementById('total-label').textContent = `총 ${total}회 감지`;
+}
+
+function addHistory(data) {
+    if (data.confidence < CONF_THRESH) return;
+    const now  = new Date();
+    const diff = Math.floor((now - startTime) / 1000);
+    const time = `${String(Math.floor(diff/60)).padStart(2,'0')}:${String(diff%60).padStart(2,'0')}`;
+    const en   = data.emotion_en || KR_TO_EN[data.emotion] || 'neutral';
+    const emo  = EMOTIONS[en] || { kr: data.emotion, emoji: '❓', cls: 'neutral' };
+    const conf = (data.confidence * 100).toFixed(1);
+    historyList.unshift({ time, emo, conf });
+    if (historyList.length > MAX_HISTORY) historyList.pop();
+    document.getElementById('history').innerHTML = historyList.map(h => `
+        <div class="history-item">
+            <span class="h-time">${h.time}</span>
+            <span class="h-badge bg-${h.emo.cls}">${h.emo.emoji} ${h.emo.kr}</span>
+            <span class="h-conf">${h.conf}%</span>
+        </div>`).join('');
+}
+
+function setStatus(type, text) {
+    const b = document.getElementById('status-badge');
+    b.className = `status-badge s-${type}`;
+    b.textContent = text;
+}
+</script>
+</body>
+</html>
