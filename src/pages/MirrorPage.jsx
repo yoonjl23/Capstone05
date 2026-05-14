@@ -4,14 +4,19 @@ import Layout from '../components/Layout'
 import SmileLogo from '../components/SmileLogo'
 import { mockApi } from '../services/mockApi'
 
+// 백엔드 결과(emotion_en)와 UI 테마 연결 매핑
+const EMOTION_THEMES = {
+  positive: { label: '기분이 좋아 보여요!', icon: '😊', color: 'bg-green-100', border: 'border-green-200' },
+  negative: { label: '조금 슬프거나 화났나요?', icon: '😠', color: 'bg-red-100', border: 'border-red-200' },
+  neutral: { label: '평온한 상태예요.', icon: '😐', color: 'bg-gray-100', border: 'border-gray-200' },
+  surprise: { label: '깜짝 놀랐나요?!', icon: '😲', color: 'bg-yellow-100', border: 'border-yellow-200' },
+  loading: { label: '마음 읽는 중...', icon: '👀', color: 'bg-white', border: 'border-gray-100' }
+}
+
 export default function MirrorPage({ setView, isMuted, setIsMuted }) {
   const videoRef = useRef(null)
-  const [detected, setDetected] = useState({
-    label: '관찰 중...',
-    icon: '👀',
-    color: 'bg-white',
-    border: 'border-gray-100'
-  })
+  const canvasRef = useRef(null)  // 이미지 캡처용 숨겨진 캔버스
+  const [detected, setDetected] = useState(EMOTION_THEMES.loading)
 
   useEffect(() => {
     let stream
@@ -19,17 +24,63 @@ export default function MirrorPage({ setView, isMuted, setIsMuted }) {
 
     const startVideo = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 640, height: 480 }
+        })
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
 
-        intervalId = setInterval(async () => {
-          const result = await mockApi.analyzeEmotion()
-          setDetected(result)
-        }, 1000)
+        // 1초마다 백엔드에 분석 요청
+        intervalId = setInterval(captureAndAnalyze, 500)
       } catch (error) {
         console.error('카메라 실행 실패:', error)
+      }
+    }
+
+    let isAnalyzing = false
+
+    const captureAndAnalyze = async () => {
+      if (!videoRef.current || !canvasRef.current) return
+
+      isAnalyzing = true
+
+      const video = videoRef.current
+      const canvas = canvasRef.current
+      const context = canvas.getContext('2d')
+
+      canvas.width = 320
+      canvas.height = 240
+
+      context.save()
+      context.scale(-1, 1)
+      context.drawImage(video, -320, 0, 320, 240)
+      context.restore()
+
+      const base64Image = canvas.toDataURL('image/jpeg', 0.5)
+
+      try {
+        const response = await fetch('http://localhost:8082/api/emotion/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: base64Image })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const emotionKey = data?.emotion_en || 'neutral'
+          const theme = EMOTION_THEMES[emotionKey] || EMOTION_THEMES.neutral
+          setDetected({
+            label: theme.label,
+            icon: theme.icon,
+            color: theme.color,
+            border: theme.border
+          })
+        }
+      } catch (error) {
+        console.error('분석 요청 실패: ', error)
+      } finally {
+        isAnalyzing = false
       }
     }
 
@@ -47,6 +98,7 @@ export default function MirrorPage({ setView, isMuted, setIsMuted }) {
 
   return (
     <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+      <canvas ref={canvasRef} className="hidden" />
       <div className="h-full flex p-8 gap-8">
         <div className="w-[55%] flex flex-col gap-6">
           <div className="flex-1 relative bg-gray-100 rounded-[40px] overflow-hidden border-[8px] border-white shadow-xl">

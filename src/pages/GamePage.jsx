@@ -6,8 +6,14 @@ import {
   Volume1
 } from 'lucide-react'
 import Layout from '../components/Layout'
-import { expressionQuestions, inferenceQuestions } from '../data/questions'
-import { mockApi } from '../services/mockApi'
+
+const EMOTION_THEMES = {
+  positive: { key: 'positive', label: '기분이 좋아요!', icon: '😄', color: 'bg-green-50', border: 'border-green-200' },
+  negative: { key: 'negative', label: '기분이 안좋아요...', icon: '😢', color: 'bg-blue-50', border: 'border-blue-200' },
+  surprise: { key: 'surprise', label: '깜짝 놀랐어요!', icon: '😲', color: 'bg-yellow-50', border: 'border-yellow-200' },
+  neutral: { key: 'neutral', label: '평온해요', icon: '😐', color: 'bg-gray-50', border: 'border-gray-200' },
+  loading: { key: 'loading', label: '마음을 읽는 중...', icon: '👀', color: 'bg-white', border: 'border-gray-100' }
+}
 
 export default function GamePage({
   setView,
@@ -21,25 +27,49 @@ export default function GamePage({
 }) {
   const videoRef = useRef(null)
   const audioRef = useRef(null)
+  const canvasRef = useRef(null)  // MirrorPage에서 가져온 캔버스 Ref
 
-  const [detected, setDetected] = useState({
-    label: '관찰 중...',
-    icon: '👀',
-    color: 'bg-white',
-    border: 'border-gray-100'
-  })
+  const [detected, setDetected] = useState(EMOTION_THEMES.loading)
   const [feedback, setFeedback] = useState(null)
   const [timeLeft, setTimeLeft] = useState(10)
   const [isReading, setIsReading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [currentQuestion, setCurrentQuestion] = useState(null);
 
   const totalQuestions = 5
 
-  const currentQuestions = useMemo(() => {
-    return gameMode === 'expression' ? expressionQuestions : inferenceQuestions
-  }, [gameMode])
-
-  const currentQuestion = currentQuestions[currentQuestionIdx]
   const currentTarget = currentQuestion?.target
+
+  // 문제 가져오기
+  const fetchQuestionFromAI = async () => {
+    setIsLoading(true)
+    setFeedback(null)
+    try {
+      const response = await fetch('http://localhost:8082/api/emotion/quiz')
+      
+      if (!response.ok) {
+        throw new Error('Spring Boot 서버에서 퀴즈를 가져오지 못했습니다.')
+      }
+      
+      const data = await response.json()
+      setCurrentQuestion(data)
+      setTimeLeft(10)
+    } catch (error) {
+      console.error('AI 문제 가져오기 실패:', error);
+      setCurrentQuestion({
+        text: "앗! AI가 문제를 만들지 못했어요. 웃는 표정을 지어볼까요?",
+        target: "positive",
+        type: "오류 발생"
+      });
+    } finally {
+      setIsLoading(false)
+    }
+  };
+
+  // 문제 인덱스가 바뀔 때마다 문제를 새로 가져옴
+  useEffect(() => {
+    fetchQuestionFromAI();
+  }, [currentQuestionIdx]);
 
   const speakQuestion = async (text) => {
     if (isMuted || !text) return
@@ -124,46 +154,81 @@ export default function GamePage({
   useEffect(() => {
     let stream
     let intervalId
+    let isAnalyzing = false
 
     const startVideo = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { width: 640, height: 480 }
+        })
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
 
-        intervalId = setInterval(async () => {
-          if (!feedback) {
-            const result = await mockApi.analyzeEmotion()
-            setDetected(result)
-
-            if (result.label === currentTarget) {
-              setFeedback('correct')
-              setGameScore(prev => prev + 1)
-            }
-          }
-        }, 1000)
+        intervalId = setInterval(captureAndAnalyze, 500)  
       } catch (error) {
-        console.error('카메라 실행 실패:', error)
+        console.error('카메라 실행 실패:', error) 
+      }
+    } 
+
+    const captureAndAnalyze = async () => {
+      // 이미 분석 중이거나, 정답을 맞춘 경우, 문제 로딩 중이면 건너뜀
+      if (isAnalyzing || feedback || !currentQuestion || isLoading || !videoRef.current || !canvasRef.current) return 
+
+      isAnalyzing = true
+      const video = videoRef.current
+      const canvas = canvasRef.current
+      const context = canvas.getContext('2d')
+
+      canvas.width = 320
+      canvas.height = 240
+
+      context.save()
+      context.scale(-1, 1)
+      context.drawImage(video, -320, 0, 320, 240)
+      context.restore()
+
+      const base64Image = canvas.toDataURL('image/jpeg', 0.5)
+
+      try {
+        const response = await fetch('http://localhost:8082/api/emotion/analyze', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ image: base64Image })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const emotionKey = data?.emotion_en || 'neutral'
+
+          const theme = EMOTION_THEMES[emotionKey] || EMOTION_THEMES.neutral
+          setDetected(theme)
+
+          if (emotionKey === currentTarget) {
+            setFeedback('correct')
+            setGameScore(prev => prev + 1)
+          }
+        }
+      } catch (error) {
+        console.error('분석 실패: ', error)
+      } finally {
+        isAnalyzing = false
       }
     }
 
-    startVideo()
+    startVideo() 
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-      }
-      if (intervalId) {
-        clearInterval(intervalId)
-      }
-    }
-  }, [currentTarget, feedback, setGameScore])
+      if (stream) stream.getTracks().forEach(track => track.stop()) 
+      if (intervalId) clearInterval(intervalId) 
+    } 
+  }, [currentTarget, feedback, setGameScore, isLoading]) 
 
   return (
     <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
       <audio ref={audioRef} hidden />
+      <canvas ref={canvasRef} className="hidden" />
 
       <div className="h-full flex p-8 gap-8">
         <div className="w-[55%] flex flex-col gap-6">
@@ -210,7 +275,7 @@ export default function GamePage({
                 AI 마음 분석기
               </p>
               <h3 className="text-4xl font-black text-gray-800">
-                {detected.label === currentTarget && !feedback ? '찾았다!' : detected.label}
+                {detected.key === currentTarget && !feedback ? '찾았다!' : detected.label}
               </h3>
             </div>
           </div>
