@@ -1,0 +1,4 @@
+# Hugging Face cache
+hf_cache/
+.cache/
+**/.cache/

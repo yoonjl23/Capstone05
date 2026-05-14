@@ -14,6 +14,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from huggingface_hub import hf_hub_download
 
+from quiz import QuizManager
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # ── 로깅 설정 ──────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -295,6 +300,12 @@ def model_info():
         "device":      str(DEVICE),
     }), 200
 
+quiz_manager = QuizManager()
+
+@app.route('/quiz', methods=["GET"])
+def get_quiz():
+    result = quiz_manager.generate_question()
+    return jsonify(result)
 
 # ── 진입점 ─────────────────────────────────────────────────
 

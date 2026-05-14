@@ -1,9 +1,11 @@
 package com.emotion.learning.controller;
 
 import com.emotion.learning.dto.EmotionResponseDto;
+import com.emotion.learning.dto.QuizResponseDto;
 import com.emotion.learning.service.EmotionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -19,6 +21,17 @@ public class EmotionController {
     @PostMapping("/analyze")
     public ResponseEntity<EmotionResponseDto> analyze(@RequestBody Map<String, String> request) {
         EmotionResponseDto result = emotionService.analyzeWithAi(request);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/quiz")
+    public ResponseEntity<QuizResponseDto> getQuiz() {
+        QuizResponseDto result = emotionService.getQuizFromAi();
+
+        if(result == null) {
+            return ResponseEntity.internalServerError().build();
+        }
+
         return ResponseEntity.ok(result);
     }
 }

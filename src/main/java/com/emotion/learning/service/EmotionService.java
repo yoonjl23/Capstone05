@@ -1,6 +1,7 @@
 package com.emotion.learning.service;
 
 import com.emotion.learning.dto.EmotionResponseDto;
+import com.emotion.learning.dto.QuizResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -14,6 +15,7 @@ public class EmotionService {
     private final RestTemplate restTemplate;
     // Docker Compose 서비스 이름사용
     private final String AI_URL = "http://ai-server:5000/predict/frame";
+    private final String AI_QUIZ_URL = "http://ai-server:5000/quiz";
 
     public EmotionResponseDto analyzeWithAi(Map<String, String> request) {
         try {
@@ -22,6 +24,16 @@ public class EmotionService {
         } catch (Exception e) {
             // 에러 발생 시 예외 처리
             System.out.println("AI 서버 통신 에러: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // 퀴즈 데이터 가져오기
+    public QuizResponseDto getQuizFromAi() {
+        try {
+            return restTemplate.getForObject(AI_QUIZ_URL, QuizResponseDto.class);
+        } catch (Exception e) {
+            System.out.println("AI 서버 퀴즈 통신 에러: " + e.getMessage());
             return null;
         }
     }

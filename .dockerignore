@@ -1,0 +1,20 @@
+# AI cache (핵심)
+ai/hf_cache/
+ai/.cache/
+**/.cache/
+
+# Python
+__pycache__/
+
+# Spring
+.gradle/
+build/
+
+# Git
+.git
+
+# logs
+*.log
+
+# IDE
+.idea/

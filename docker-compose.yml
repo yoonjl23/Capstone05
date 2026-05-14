@@ -19,11 +19,17 @@ services:
     build: ./ai
     container_name: ai-flask-server
     restart: always
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - HF_HOME=/app/hf_cache
+    volumes:
+      - ./ai/hf_cache:/app/hf_cache
     ports: 
       - "5000:5000"
     
   app:
-    build: .
+    build: 
+      context: .
     container_name: spring-app
     depends_on:
       - db
