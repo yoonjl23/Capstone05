@@ -24,4 +24,10 @@ public class CharacterCard {
 
     @Column(nullable = false)
     private Integer requiredLevel;
+
+    @Column(nullable = false)
+    private String themeCode;       // 테마 코드 추가
+
+    @Column(nullable = false)
+    private String imageName;
 }

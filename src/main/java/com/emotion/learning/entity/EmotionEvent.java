@@ -22,9 +22,8 @@ public class EmotionEvent {
     @JoinColumn(name = "session_id", nullable = false)
     private GameSession session;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id")
-    private Question question;
+    @Column(name = "question_id")
+    private Long questionId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

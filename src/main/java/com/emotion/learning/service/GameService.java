@@ -3,9 +3,9 @@ package com.emotion.learning.service;
 import com.emotion.learning.dto.GameSessionDto;
 import com.emotion.learning.entity.*;
 import com.emotion.learning.exception.ApiException;
+import com.emotion.learning.repository.EmotionEventRepository;
 import com.emotion.learning.repository.GameRoundRepository;
 import com.emotion.learning.repository.GameSessionRepository;
-import com.emotion.learning.repository.QuestionRepository;
 import com.emotion.learning.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,23 +21,22 @@ import java.util.List;
 public class GameService {
 
     private final UserRepository userRepository;
-    private final QuestionRepository questionRepository;
     private final GameSessionRepository gameSessionRepository;
     private final GameRoundRepository gameRoundRepository;
+    private final EmotionEventRepository emotionEventRepository;
     private final ProgressService progressService;
 
     @Transactional
     public GameSessionDto.StartResponse start(GameSessionDto.StartRequest request) {
-        User user = userRepository.findById(request.getUserId())
+        User user = userRepository.findByUserId(request.getLoginId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."));
         GameMode mode = GameMode.valueOf(request.getMode().toUpperCase());
-        int totalQuestions = questionRepository.findByModeOrderByOrderNoAsc(mode).size();
 
         GameSession session = gameSessionRepository.save(GameSession.builder()
                 .user(user)
                 .mode(mode)
                 .status(GameSessionStatus.IN_PROGRESS)
-                .totalQuestions(totalQuestions)
+                .totalQuestions(request.getTotalQuestions())
                 .score(0)
                 .earnedExp(0)
                 .build());
@@ -59,29 +58,32 @@ public class GameService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "이미 종료된 게임입니다.");
         }
 
-        Question question = questionRepository.findById(request.getQuestionId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "문제를 찾을 수 없습니다."));
-
         EmotionCode detectedEmotion = EmotionCode.fromLabel(request.getDetectedEmotion());
-        boolean correct = question.getTargetEmotion() == detectedEmotion;
+
+        boolean correct = Boolean.TRUE.equals(request.getCorrect());
         int earnedScore = correct ? 1 : 0;
         int earnedExp = correct ? 10 : 2;
-        int roundOrder = (int) gameRoundRepository.countBySessionId(sessionId) + 1;
 
         gameRoundRepository.save(GameRound.builder()
                 .session(session)
-                .question(question)
+                .questionId(request.getQuestionId())
                 .detectedEmotion(detectedEmotion)
                 .correct(correct)
                 .earnedScore(earnedScore)
                 .earnedExp(earnedExp)
-                .roundOrder(roundOrder)
                 .answeredAt(LocalDateTime.now())
+                .build());
+
+        emotionEventRepository.save(EmotionEvent.builder()
+                .session(session)
+                .questionId(request.getQuestionId())
+                .detectedEmotion(detectedEmotion)
+                .confidence(request.getConfidence())
+                .capturedAt(LocalDateTime.now())
                 .build());
 
         session.setScore(session.getScore() + earnedScore);
         session.setEarnedExp(session.getEarnedExp() + earnedExp);
-        gameSessionRepository.save(session);
 
         UserProgress progress = progressService.addExp(session.getUser(), earnedExp);
 
@@ -106,13 +108,10 @@ public class GameService {
 
     public GameSessionDto.ResultResponse getResult(Long sessionId) {
         GameSession session = getSession(sessionId);
-        List<GameSessionDto.RoundResult> rounds = gameRoundRepository.findBySessionIdOrderByRoundOrderAsc(sessionId)
+        List<GameSessionDto.RoundResult> rounds = gameRoundRepository.findBySessionIdOrderByAnsweredAtAsc(sessionId)
                 .stream()
                 .map(round -> GameSessionDto.RoundResult.builder()
-                        .roundOrder(round.getRoundOrder())
-                        .questionId(round.getQuestion().getId())
-                        .questionText(round.getQuestion().getText())
-                        .targetEmotion(round.getQuestion().getTargetEmotion().getLabel())
+                        .questionId(round.getQuestionId())
                         .detectedEmotion(round.getDetectedEmotion().getLabel())
                         .correct(round.getCorrect())
                         .earnedScore(round.getEarnedScore())

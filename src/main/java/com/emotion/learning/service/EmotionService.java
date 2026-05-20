@@ -14,8 +14,8 @@ public class EmotionService {
 
     private final RestTemplate restTemplate;
     // Docker Compose 서비스 이름사용
-    private final String AI_URL = "http://ai-server:5000/predict/frame";
-    private final String AI_QUIZ_URL = "http://ai-server:5000/quiz";
+    private final String AI_URL = "http://localhost:5001/predict/frame";
+    private final String AI_QUIZ_URL = "http://localhost:5001/quiz";
 
     public EmotionResponseDto analyzeWithAi(Map<String, String> request) {
         try {
@@ -29,9 +29,9 @@ public class EmotionService {
     }
 
     // 퀴즈 데이터 가져오기
-    public QuizResponseDto getQuizFromAi() {
+    public QuizResponseDto[] getQuizFromAi() {
         try {
-            return restTemplate.getForObject(AI_QUIZ_URL, QuizResponseDto.class);
+            return restTemplate.getForObject(AI_QUIZ_URL, QuizResponseDto[].class);
         } catch (Exception e) {
             System.out.println("AI 서버 퀴즈 통신 에러: " + e.getMessage());
             return null;

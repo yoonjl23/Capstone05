@@ -10,8 +10,9 @@ public class GameSessionDto {
     @Getter @Setter
     @NoArgsConstructor @AllArgsConstructor @Builder
     public static class StartRequest {
-        private Long userId;
+        private String loginId;     // 유저의 로그인 아이디
         private String mode;
+        private Integer totalQuestions;
     }
 
     @Getter @Builder @AllArgsConstructor
@@ -29,6 +30,8 @@ public class GameSessionDto {
     public static class SubmitAnswerRequest {
         private Long questionId;
         private String detectedEmotion;
+        private Boolean correct;
+        private Double confidence;
     }
 
     @Getter @Builder @AllArgsConstructor
@@ -43,10 +46,7 @@ public class GameSessionDto {
 
     @Getter @Builder @AllArgsConstructor
     public static class RoundResult {
-        private Integer roundOrder;
         private Long questionId;
-        private String questionText;
-        private String targetEmotion;
         private String detectedEmotion;
         private Boolean correct;
         private Integer earnedScore;

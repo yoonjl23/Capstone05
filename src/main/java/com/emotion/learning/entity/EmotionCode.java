@@ -3,10 +3,10 @@ package com.emotion.learning.entity;
 import java.util.Arrays;
 
 public enum EmotionCode {
-    JOY("기쁨", "😊"),
-    SADNESS("슬픔", "😢"),
-    ANGER("화남", "😠"),
-    SURPRISE("놀람", "😲");
+    POSITIVE("기분이 좋아요!", "😄"),
+    NEGATIVE("기분이 안좋아요...", "😢"),
+    SURPRISE("깜짝 놀랐어요!", "😲"),
+    NEUTRAL("평온해요", "😐");
 
     private final String label;
     private final String icon;

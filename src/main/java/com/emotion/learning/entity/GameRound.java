@@ -22,9 +22,8 @@ public class GameRound {
     @JoinColumn(name = "session_id", nullable = false)
     private GameSession session;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
-    private Question question;
+    @Column(name = "question_id", nullable = false)
+    private Long questionId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -38,9 +37,6 @@ public class GameRound {
 
     @Column(nullable = false)
     private Integer earnedExp;
-
-    @Column(nullable = false)
-    private Integer roundOrder;
 
     @Column(nullable = false)
     private LocalDateTime answeredAt;

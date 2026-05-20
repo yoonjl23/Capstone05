@@ -25,8 +25,8 @@ public class EmotionController {
     }
 
     @GetMapping("/quiz")
-    public ResponseEntity<QuizResponseDto> getQuiz() {
-        QuizResponseDto result = emotionService.getQuizFromAi();
+    public ResponseEntity<QuizResponseDto[]> getQuiz() {
+        QuizResponseDto[] result = emotionService.getQuizFromAi();
 
         if(result == null) {
             return ResponseEntity.internalServerError().build();

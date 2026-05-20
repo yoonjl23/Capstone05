@@ -1,7 +1,6 @@
 package com.emotion.learning.controller;
 
 import com.emotion.learning.dto.QuestionResponseDto;
-import com.emotion.learning.service.QuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
