@@ -14,6 +14,11 @@ from PIL import Image
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from huggingface_hub import hf_hub_download
+from dotenv import load_dotenv
+
+from quiz import QuizManager
+
+load_dotenv()
 
 # ── 로깅 설정 ──────────────────────────────────────────────
 logging.basicConfig(
@@ -26,6 +31,7 @@ logger = logging.getLogger(__name__)
 HF_REPO_ID = os.environ.get("HF_REPO_ID", "Ajelly/Capstone05-models")
 
 def get_model_path(filename: str) -> str:
+    """로컬에 있으면 로컬 사용, 없으면 HuggingFace에서 자동 다운로드"""
     if os.path.exists(filename):
         logger.info(f"Using local model: {filename}")
         return filename
@@ -41,8 +47,8 @@ EMOTION_NAMES = ["positive", "negative", "neutral", "surprise"]
 EMOTION_KR    = ["긍정", "부정", "중립", "놀람"]
 
 # 얼굴 감지 설정
-FACE_CONF_THRESHOLD = 0.5   # YOLO 얼굴 감지 신뢰도 최소값
-FACE_MARGIN_RATIO   = 0.1   # 얼굴 크롭 여백 비율
+FACE_CONF_THRESHOLD = 0.5
+FACE_MARGIN_RATIO   = 0.1
 
 logger.info(f"Using device: {DEVICE}")
 
@@ -55,7 +61,6 @@ def load_face_detector():
     try:
         from ultralytics import YOLO
 
-        # 로컬에 있으면 사용, 없으면 자동 다운로드
         yolo_path = 'yolov8n-face.pt'
         if not os.path.exists(yolo_path):
             logger.info("yolov8n-face.pt 다운로드 중...")
@@ -81,30 +86,23 @@ def detect_and_crop_face(image: Image.Image):
     반환: (크롭된 PIL Image 또는 None, 감지 여부, bbox 정보)
     """
     if face_detector is None:
-        # YOLO 없으면 원본 이미지 그대로 사용
         return image, True, None
 
     img_array = np.array(image)
+    results   = face_detector(img_array, conf=FACE_CONF_THRESHOLD, verbose=False)
+    boxes     = results[0].boxes
 
-    results = face_detector(
-        img_array,
-        conf=FACE_CONF_THRESHOLD,
-        verbose=False
-    )
-
-    boxes = results[0].boxes
     if boxes is None or len(boxes) == 0:
-        return None, False, None  # 얼굴 없음
+        return None, False, None
 
     # 가장 신뢰도 높은 얼굴 선택
-    confs = boxes.conf.cpu().numpy()
+    confs    = boxes.conf.cpu().numpy()
     best_idx = int(np.argmax(confs))
     best_conf = float(confs[best_idx])
 
     box = boxes.xyxy[best_idx].cpu().numpy()
     x1, y1, x2, y2 = map(int, box)
 
-    # 여백 추가
     w = x2 - x1
     h = y2 - y1
     margin = int(min(w, h) * FACE_MARGIN_RATIO)
@@ -114,7 +112,6 @@ def detect_and_crop_face(image: Image.Image):
     y2 = min(image.height, y2 + margin)
 
     face_crop = image.crop((x1, y1, x2, y2))
-
     bbox_info = {
         "x1": x1, "y1": y1, "x2": x2, "y2": y2,
         "face_confidence": round(best_conf, 4)
@@ -255,6 +252,8 @@ except Exception as e:
     logger.error(f"Model load failed: {e}\n{traceback.format_exc()}")
     logger.warning("Server will start without a loaded model. /predict will return 503.")
 
+quiz_manager = QuizManager()
+
 
 # ── 공용 추론 함수 ──────────────────────────────────────────
 def _infer(image: Image.Image) -> dict:
@@ -316,14 +315,15 @@ def index():
 def health():
     status = "ok" if model is not None else "model_not_loaded"
     return jsonify({
-        "status":           status,
-        "device":           str(DEVICE),
-        "face_detector":    "YOLOv8-face" if face_detector is not None else "none",
+        "status":        status,
+        "device":        str(DEVICE),
+        "face_detector": "YOLOv8-face" if face_detector is not None else "none",
     }), 200
 
 
 @app.route("/predict", methods=["POST"])
 def predict():
+    """multipart/form-data 또는 raw bytes 이미지 추론"""
     if model is None:
         return jsonify({"error": "Model is not loaded"}), 503
     try:
@@ -387,14 +387,12 @@ def predict_frame():
     try:
         result = _infer(image)
 
-        # 얼굴 미감지 응답
         if not result["face_detected"]:
             return jsonify({
                 "face_detected": False,
                 "message":       result["message"],
             }), 200
 
-        # 정상 응답
         return jsonify({
             "face_detected": True,
             "emotion":       result["emotion"],
@@ -422,126 +420,11 @@ def model_info():
     }), 200
 
 
-# ── 진입점 ─────────────────────────────────────────────────
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
-CORS(app)
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route("/health", methods=["GET"])
-def health():
-    status = "ok" if model is not None else "model_not_loaded"
-    return jsonify({
-        "status":           status,
-        "device":           str(DEVICE),
-        "face_detector":    "YOLOv8-face" if face_detector is not None else "none",
-    }), 200
-
-
-@app.route("/predict", methods=["POST"])
-def predict():
-    if model is None:
-        return jsonify({"error": "Model is not loaded"}), 503
-    try:
-        if request.content_type and "multipart" in request.content_type:
-            if "image" not in request.files:
-                return jsonify({"error": "No 'image' field in form-data"}), 400
-            file_bytes = request.files["image"].read()
-        else:
-            file_bytes = request.get_data()
-            if not file_bytes:
-                return jsonify({"error": "Empty request body"}), 400
-        image = Image.open(io.BytesIO(file_bytes)).convert("RGB")
-    except Exception as e:
-        return jsonify({"error": f"Invalid image: {str(e)}"}), 400
-
-    try:
-        result = _infer(image)
-        if result["face_detected"]:
-            logger.info(f"[predict] {result['emotion']} ({result['confidence']:.2%})")
-        else:
-            logger.info("[predict] 얼굴 미감지")
-        return jsonify(result), 200
-    except Exception as e:
-        logger.error(f"Inference error: {e}\n{traceback.format_exc()}")
-        return jsonify({"error": f"Inference failed: {str(e)}"}), 500
-
-
-@app.route("/predict/frame", methods=["POST"])
-def predict_frame():
-    """
-    실시간 웹캠 프레임 전용 엔드포인트
-    얼굴 미감지 시 face_detected=False 반환
-
-    요청: { "image": "data:image/jpeg;base64,..." }
-    응답: {
-        "face_detected": true/false,
-        "emotion": "긍정",
-        "emotion_en": "positive",
-        "emotion_index": 0,
-        "confidence": 0.87,
-        "message": "얼굴이 감지되지 않았습니다." (미감지 시)
-    }
-    """
-    if model is None:
-        return jsonify({"error": "Model is not loaded"}), 503
-
-    try:
-        data = request.get_json(force=True)
-        if not data or "image" not in data:
-            return jsonify({"error": "Missing 'image' field"}), 400
-
-        b64_str = data["image"]
-        if "," in b64_str:
-            b64_str = b64_str.split(",", 1)[1]
-
-        img_bytes = base64.b64decode(b64_str)
-        image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
-    except Exception as e:
-        return jsonify({"error": f"Invalid frame data: {str(e)}"}), 400
-
-    try:
-        result = _infer(image)
-
-        # 얼굴 미감지 응답
-        if not result["face_detected"]:
-            return jsonify({
-                "face_detected": False,
-                "message":       result["message"],
-            }), 200
-
-        # 정상 응답
-        return jsonify({
-            "face_detected": True,
-            "emotion":       result["emotion"],
-            "emotion_en":    result["emotion_en"],
-            "emotion_index": result["emotion_index"],
-            "confidence":    result["confidence"],
-        }), 200
-
-    except Exception as e:
-        logger.error(f"Frame inference error: {e}")
-        return jsonify({"error": f"Inference failed: {str(e)}"}), 500
-
-
-@app.route("/model-info", methods=["GET"])
-def model_info():
-    if model is None:
-        return jsonify({"error": "Model not loaded"}), 503
-    return jsonify({
-        "classes":       emotion_names_en,
-        "classes_kr":    emotion_names_kr,
-        "num_classes":   len(emotion_names_en),
-        "image_size":    IMAGE_SIZE,
-        "device":        str(DEVICE),
-        "face_detector": "YOLOv8-face" if face_detector is not None else "none",
-    }), 200
+@app.route('/quiz', methods=["GET"])
+def get_quiz():
+    """퀴즈 문제 생성"""
+    result = quiz_manager.generate_question()
+    return jsonify(result)
 
 
 # ── 진입점 ─────────────────────────────────────────────────
