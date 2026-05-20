@@ -6,7 +6,8 @@ export default function Layout({
   showHeader = true,
   setView,
   isMuted,
-  setIsMuted
+  setIsMuted,
+  username
 }) {
   return (
     <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-6 font-sans text-gray-800">
@@ -31,7 +32,7 @@ export default function Layout({
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 bg-yellow-500/30 px-4 py-1.5 rounded-full">
                 <Stars size={18} className="text-yellow-100" />
-                <span className="text-sm font-bold">우리친구님 안녕!</span>
+                <span className="text-sm font-bold">{username ? `${username} 안녕!` : '우리친구 안녕!'}</span>
               </div>
 
               <button

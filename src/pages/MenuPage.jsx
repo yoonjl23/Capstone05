@@ -4,13 +4,14 @@ import MenuCard from '../components/MenuCard'
 
 export default function MenuPage({
   setView,
+  username,
   onStartExpression,
   onStartInference,
   isMuted,
   setIsMuted
 }) {
   return (
-    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted} username={username}>
       <div className="h-full flex flex-col items-center justify-center p-12">
         <h2 className="text-4xl font-black text-gray-800 mb-12">
           오늘은 어떤 놀이를 할까요?

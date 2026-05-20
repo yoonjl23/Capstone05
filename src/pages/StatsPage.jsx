@@ -1,16 +1,46 @@
+import { useEffect, useState } from 'react';
 import Layout from '../components/Layout'
 
-export default function StatsPage({ setView, isMuted, setIsMuted }) {
-  // 🔥 나중에 백엔드에서 받아올 데이터 (지금은 더미)
-  const stats = {
-    expressionCount: 5,
-    inferenceCount: 3,
-    emotions: [
-      { name: '기쁨', icon: '😊', accuracy: 80 },
-      { name: '슬픔', icon: '😢', accuracy: 60 },
-      { name: '화남', icon: '😠', accuracy: 40 },
-      { name: '놀람', icon: '😲', accuracy: 90 },
-    ],
+const EMOTION_INFO = {
+  positive: { name: '기쁨', icon: '😊' },
+  negative: { name: '슬픔', icon: '😢' },
+  surprise: { name: '놀람', icon: '😲' },
+  neutral: { name: '평온', icon: '😐' }
+}
+
+export default function StatsPage({ setView, isMuted, setIsMuted, userId }) {
+  
+  const [stats, setStats] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!userId) return
+
+      try {
+        const response = await fetch(`http://localhost:8080/api/stats/${userId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setStats(data)
+        }
+      } catch (e) {
+        console.error('통계 데이터를 불러오는데 실패했습니다.', e)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStats()
+  }, [userId])
+
+  if (isLoading || !stats) {
+    return (
+      <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+        <div className="h-full flex items-center justify-center bg-[#FFFBF5]">
+          <h2 className="text-3xl font-black text-gray-400 animate-pulse">데이터를 불러오는 중...</h2>
+        </div>
+      </Layout>
+    )
   }
 
   return (
@@ -56,23 +86,25 @@ export default function StatsPage({ setView, isMuted, setIsMuted }) {
             </h3>
 
             <div className="space-y-5">
-              {stats.emotions.map((emotion) => (
-                <div key={emotion.name}>
-                  <div className="flex justify-between mb-1 font-bold text-gray-600">
-                    <span>
-                      {emotion.icon} {emotion.name}
-                    </span>
-                    <span>{emotion.accuracy}%</span>
-                  </div>
+              {stats.emotions.map((emotion, index) => {
+                const info = EMOTION_INFO[emotion.emotionKey] || { name: '알 수 없음', icon: '❓' }
 
-                  <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-yellow-400 transition-all"
-                      style={{ width: `${emotion.accuracy}%` }}
-                    />
+                return (
+                  <div key={index}>
+                    <div className="flex justify-between mb-1 font-bold text-gray-600">
+                      <span>{info.icon} {info.name}</span>
+                      <span>{emotion.accuracy}%</span>
+                    </div>
+
+                    <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-yellow-400 transition-all duration-1000 ease-out"
+                        style={{ width: `${emotion.accuracy}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

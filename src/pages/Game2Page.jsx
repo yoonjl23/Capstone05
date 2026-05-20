@@ -16,6 +16,14 @@ const EMOTION_THEMES = {
   loading: { key: 'loading', label: '마음을 읽는 중...', icon: '👀', color: 'bg-white', border: 'border-gray-100' }
 }
 
+const FIXED_QUIZ_DATASET = [
+  { id: 1, text: "활짝 웃으며 기쁜 표정을 지어보세요!", target: "positive", type: "감정 표현하기" },
+  { id: 2, text: "슬픈 표정을 지어볼까요?", target: "negative", type: "감정 표현하기" },
+  { id: 3, text: "우와! 깜짝 놀란 토끼 눈을 만들어보세요!", target: "surprise", type: "감정 표현하기" },
+  { id: 4, text: "아무 생각도 하지 않는 평온한 표정을 유지해보세요.", target: "neutral", type: "감정 표현하기" },
+  { id: 5, text: "다시 한번 신나게 싱글벙글 웃어볼까요?", target: "positive", type: "감정 표현하기" }
+]
+
 export default function GamePage({
   setView,
   gameMode,
@@ -29,24 +37,22 @@ export default function GamePage({
 }) {
   const videoRef = useRef(null)
   const audioRef = useRef(null)
-  const canvasRef = useRef(null) 
+  const canvasRef = useRef(null)
   const startedRef = useRef(false)
   const sessionIdRef = useRef(null)
   const answeredRef = useRef(false)
+  const scoreLockRef = useRef(false)
+  const analyzeLockRef = useRef(false)
 
   const [detected, setDetected] = useState(EMOTION_THEMES.loading)
   const [feedback, setFeedback] = useState(null)
   const [timeLeft, setTimeLeft] = useState(10)
   const [isReading, setIsReading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [sessionId, setSessionId] = useState(null)
 
-  const [earnedExp, setEarnedExp] = useState(0)
-  const [gameStatus, setGameStatus] = useState('IN_PROGRESS')
-  
-  const [isQuestionChanging, setIsQuestionChanging] = useState(true)
   const [currentQuestion, setCurrentQuestion] = useState(null)
-
-  const [quizList, setQuizList] = useState([])
+  const [isQuestionChanging, setIsQuestionChanging] = useState(false)
 
   const totalQuestions = 5
   const currentTarget = currentQuestion?.target
@@ -54,15 +60,25 @@ export default function GamePage({
   const stateRef = useRef({
     currentTarget: null,
     feedback: null,
-    isQuestionChanging: true, 
+    isQuestionChanging: false,
     timeLeft: 10,
-    isScored: false,
-    currentQuestionIdx: 0
+    isLoading: false,
+    isReading: false,
+    isScored: false
   })
 
   useEffect(() => {
-    stateRef.current.currentTarget = currentTarget
-  }, [currentTarget])
+    stateRef.current = {
+      currentTarget,
+      feedback,
+      isQuestionChanging,
+      timeLeft,
+      isLoading,
+      isReading,
+      detectedKey: detected?.key,
+      currentQuestionIdx
+    }
+  }, [currentTarget, feedback, isQuestionChanging, timeLeft, isLoading, isReading, detected, currentQuestionIdx])
 
   // 게임 시작 시 호출하는 세션
   useEffect(() => {
@@ -95,7 +111,7 @@ export default function GamePage({
     sessionIdRef.current = sessionId
   }, [sessionId])
 
-  // 문제 라운드 마다 정답 저장
+   // 문제 라운드 마다 정답 저장
   const submitAnswer = async (result) => {
     if (!sessionIdRef.current || result?.questionId == null) {
       console.warn('답 제출 스킵됨', sessionIdRef.current, result)
@@ -131,196 +147,130 @@ export default function GamePage({
     }
   }
 
-  // 매 렌더링마다 최신 값을 Ref에 동기화
-  useEffect(() => {
-    stateRef.current.currentTarget = currentTarget
-    stateRef.current.feedback = feedback
-    stateRef.current.isQuestionChanging = isQuestionChanging
-    stateRef.current.timeLeft = timeLeft
-    stateRef.current.curretnQuestionIdx = currentQuestionIdx
-  }, [currentTarget, feedback, isQuestionChanging, timeLeft, currentQuestionIdx])
-
-  useEffect(() => {
-    let ignore = false;
-
-    const fetchAllQuestions = async () => {
-      setIsQuestionChanging(true)
-
-      try {
-        const response = await fetch('http://localhost:8080/api/emotion/quiz')
-        
-        if (!response.ok) {
-          throw new Error('Spring Boot 서버에서 퀴즈를 가져오지 못했습니다.')
-        }
-        
-        const data = await response.json() // 5개의 문제가 담긴 배열
-        
-        if (!ignore && Array.isArray(data) && data.length > 0) {
-          setQuizList(data) // 배열을 상태에 저장
-        }
-      } catch (error) {
-        console.error('API 에러, 기본 데모 퀴즈 세팅:', error);
-        if (!ignore) {
-          // 에러 시 5개의 데모 문제 배열로 세팅
-          setQuizList([
-            { text: "친구들과 신나게 술래잡기를 하고 있어요!", target: "positive", type: "오류 발생 방어" },
-            { text: "앗! 갑자기 천둥 번개가 쳤어요!", target: "surprise", type: "오류 발생 방어" },
-            { text: "아끼던 풍선이 터져버렸어요...", target: "negative", type: "오류 발생 방어" },
-            { text: "따뜻한 이불 속에서 눈을 감고 누워있어요.", target: "neutral", type: "오류 발생 방어" },
-            { text: "맛있는 아이스크림을 먹고 있어요!", target: "positive", type: "오류 발생 방어" }
-          ])
-        }
-      }
-    };
-
-    fetchAllQuestions();
-
-    return () => {
-      ignore = true; 
-    }
-  }, []); // 의존성 배열이 비어있으므로 처음 1회만 실행됨
-
-  useEffect(() => {
-    // 아직 문제를 못 가져왔으면 대기
-    if (quizList.length === 0) return;
-
-    setIsQuestionChanging(true)
+  const loadLocalQuestion = () => {
+    setIsLoading(true)
     setFeedback(null)
-    setDetected(EMOTION_THEMES.loading)
-    setTimeLeft(10)
-    stateRef.current.isScored = false 
-    answeredRef.current = false
+    stateRef.current.isScored = false // 새 문제 시작 시 채점 초기화
 
-    // 인덱스에 맞춰 현재 문제 설정
-    if (currentQuestionIdx < quizList.length) {
-      setCurrentQuestion(quizList[currentQuestionIdx])
+    try {
+      const quiz = FIXED_QUIZ_DATASET[currentQuestionIdx]
+      if (quiz) {
+        setCurrentQuestion(quiz)
+        setTimeLeft(10)
+        setIsQuestionChanging(true)
+        setTimeout(() => {
+          setIsQuestionChanging(false)
+        }, 1500)
+      } else {
+        finishGame()
+        setView('result')
+      }
+    } catch (error) {
+      console.error('문제 로드 실패: ', error)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    const timer = setTimeout(() => {
-      setIsQuestionChanging(false)
-    }, 800)
-
-    return () => clearTimeout(timer)
-  }, [currentQuestionIdx, quizList]);
-
+  useEffect(() => {
+    loadLocalQuestion()
+  }, [currentQuestionIdx])
 
   const speakQuestion = async (text) => {
     if (isMuted || !text) return
-
     try {
       setIsReading(true)
-
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'ko-KR'
-      utterance.rate = 0.95
+      utterance.rate = 1.05
       utterance.pitch = 1
 
-      window.speechSynthesis.cancel()
+      if (window.speechSynthesis) window.speechSynthesis.cancel()
       window.speechSynthesis.speak(utterance)
 
-      utterance.onend = () => {
-        setIsReading(false)
-      }
+      utterance.onend = () => setIsReading(false)
     } catch (error) {
       console.error('음성 읽기 실패:', error)
       setIsReading(false)
     }
   }
 
-  const handleNext = async () => {
+  const handleNext = () => {
     setFeedback(null)
     setTimeLeft(10)
     setDetected(EMOTION_THEMES.loading)
-    
-    setIsQuestionChanging(true)
-    stateRef.current.isQuestionChanging = true 
+    stateRef.current.isScored = false // 다음 문제로 갈 때 채점 잠금 해제
 
     if (currentQuestionIdx + 1 < totalQuestions) {
       setCurrentQuestionIdx(prev => prev + 1)
     } else {
-      await finishGame()
-      setView('result')
+      finishGame()
+      setTimeout(() => setView('result'), 100)
     }
   }
 
   useEffect(() => {
-    if (currentQuestion?.text && !isQuestionChanging) {
-      speakQuestion(currentQuestion.text)
-    }
-  }, [currentQuestion, isQuestionChanging])
-  
+    if (currentQuestion?.text) speakQuestion(currentQuestion.text)
+  }, [currentQuestionIdx, gameMode, currentQuestion])
+
   useEffect(() => {
     if (feedback !== 'correct') return
-  
-    const timeoutId = setTimeout(() => {
-      handleNext()
-    }, 1500)
-  
+    const timeoutId = setTimeout(() => handleNext(), 1200)
     return () => clearTimeout(timeoutId)
   }, [feedback])
 
   useEffect(() => {
-    if (feedback || isQuestionChanging) return
-    if (timeLeft <= 0) return
-  
-    const timerId = setInterval(() => {
-      setTimeLeft(prev => prev - 1)
-    }, 1000)
-  
+    if (feedback || isLoading || isQuestionChanging || timeLeft <= 0) return
+    const timerId = setInterval(() => setTimeLeft(prev => prev - 1), 1000)
     return () => clearInterval(timerId)
-  }, [timeLeft, feedback, isQuestionChanging])
-  
+  }, [timeLeft, feedback, isLoading, isQuestionChanging])
+
   useEffect(() => {
-    if (feedback || isQuestionChanging) return
-    if (timeLeft > 0) return
-  
+    if (feedback || isQuestionChanging || timeLeft > 0) return
+
+    if (!stateRef.current.isScored) {
+      stateRef.current.isScored = true
+
+      const result = {
+        questionId: currentQuestionIdx + 1,
+        emotion: detected.key,
+        correct: false,
+        confidence: 0
+      }
+
+      submitAnswer(result)
+    }
     setFeedback('timeout')
-  }, [timeLeft, feedback, isQuestionChanging])
-  
+  }, [timeLeft, feedback, isQuestionChanging, detected.key])
+
   useEffect(() => {
     if (feedback !== 'timeout') return
-
-    if (answeredRef.current) return
-    answeredRef.current = true
-
-    // 틀린 경우도 저장
-    submitAnswer({
-      questionId: currentQuestionIdx + 1,
-      emotion: detected.key,
-      correct: false,
-      confidence: 0
-    })
-  
-    const timeoutId = setTimeout(() => {
-      handleNext()
-    }, 2000)
-  
+    const timeoutId = setTimeout(() => handleNext(), 2000)
     return () => clearTimeout(timeoutId)
   }, [feedback])
 
   useEffect(() => {
-    let stream = null;
+    let stream = null
     const startVideo = async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { width: 640, height: 480 }
         })
-
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
       } catch (error) {
         console.error('카메라 실행 실패:', error) 
       }
-    } 
-
-    startVideo() 
+    }
+    startVideo()
 
     return () => {
       if (stream) stream.getTracks().forEach(track => track.stop()) 
-    } 
-  }, [])
+    }
+  }, []) 
 
+  // 주기적으로 화면 캡처 및 분석하는 로직
   useEffect(() => {
     let intervalId
     let isAnalyzing = false
@@ -328,13 +278,10 @@ export default function GamePage({
     const captureAndAnalyze = async () => {
       const state = stateRef.current
 
-      if (isAnalyzing || state.feedback !== null || state.isQuestionChanging || state.timeLeft <= 0 || !videoRef.current || !canvasRef.current) return 
+      if (isAnalyzing || state.feedback !== null || state.isQuestionChanging || !state.currentTarget || state.isLoading || state.isReading || state.timeLeft <= 0 || !videoRef.current || !canvasRef.current) return 
 
-      const video = videoRef.current
-      if (video.readyState !== 4) return
-      
       isAnalyzing = true
-      
+      const video = videoRef.current
       const canvas = canvasRef.current
       const context = canvas.getContext('2d')
 
@@ -355,30 +302,38 @@ export default function GamePage({
           body: JSON.stringify({ image: base64Image })
         })
 
-        if (response.ok) {
-          const data = await response.json()
-          const emotionKey = data?.emotion_en || 'neutral'
-          const confidenceScore = data?.confidence || 0
+        if (!response.ok) throw new Error('네트워크 응답 상태 비정상');
 
-          if (stateRef.current.feedback !== null || stateRef.current.isQuestionChanging || stateRef.current.timeLeft <= 0) return
+        const resText = await response.text();
+        if (!resText) return;
 
-          const theme = EMOTION_THEMES[emotionKey] || EMOTION_THEMES.neutral
-          setDetected(theme)
+        // API 응답 대기 중에 상태가 변했을 수 있으니 다시 확인
+        if (stateRef.current.feedback !== null || stateRef.current.isQuestionChanging || stateRef.current.timeLeft <= 0) return
 
-          if (emotionKey === stateRef.current.currentTarget) {
-            if (!stateRef.current.isScored) {
-              answeredRef.current = true
-              stateRef.current.isScored = true 
-              setFeedback('correct')
-              setGameScore(prev => prev + 1)
+        const data = JSON.parse(resText);
+        const emotionKey = data?.emotion_en || 'neutral'
+        const confidenceScore = data?.confidence || 0
 
-              submitAnswer({
-                questionId: currentQuestionIdx + 1,
-                emotion: emotionKey,
-                correct: true,
-                confidence: confidenceScore
-              })
+        setDetected(prev => {
+            if (prev.key === emotionKey) return prev
+            return EMOTION_THEMES[emotionKey] || EMOTION_THEMES.neutral
+        })
+
+        if (emotionKey === stateRef.current.currentTarget && stateRef.current.feedback === null && stateRef.current.timeLeft > 0) {
+          // 중복 채점 방지 장치 확인
+          if (!stateRef.current.isScored) {
+            stateRef.current.isScored = true
+
+            const result = {
+              questionId: stateRef.current.currentQuestionIdx + 1,
+              emotion: emotionKey,
+              correct: true,
+              confidence: confidenceScore
             }
+
+            submitAnswer(result)
+            setFeedback('correct')
+            setGameScore(prev => prev + 1)
           }
         }
       } catch (error) {
@@ -390,13 +345,7 @@ export default function GamePage({
 
     intervalId = setInterval(captureAndAnalyze, 1000) 
     return () => clearInterval(intervalId) 
-  }, [setGameScore, currentQuestionIdx]) 
-
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel()
-    }
-  }, [])
+  }, [setGameScore]) 
 
   return (
     <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
@@ -447,8 +396,9 @@ export default function GamePage({
               <p className="text-xs font-black text-black/30 uppercase tracking-widest mb-1">
                 AI 마음 분석기
               </p>
+              {/* 💡 문제 3 해결: "새로운 문제 준비" 텍스트 분리 */}
               <h3 className="text-4xl font-black text-gray-800">
-                {detected.key === currentTarget && !feedback && !isQuestionChanging ? '찾았다!' : detected.label}
+                {detected.key === currentTarget && !feedback ? '찾았다!' : detected.label}
               </h3>
             </div>
           </div>
@@ -470,9 +420,10 @@ export default function GamePage({
             <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 relative">
               <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase flex items-center gap-2 ${gameMode === GAME_MODE.EXPRESSION ? 'bg-orange-100 text-orange-600' : 'bg-purple-100 text-purple-600'}`}>
                 {isReading && <Volume1 size={14} className="animate-pulse" />}
-                {isQuestionChanging ? '문제 생성 중...' : currentQuestion?.type}
+                {currentQuestion?.type}
               </div>
 
+              {/* 💡 문제 3 해결: "새로운 문제 준비" 텍스트를 문제 텍스트 자리로 배치 */}
               <h2 className="text-4xl font-black leading-snug text-gray-800">
                 {isQuestionChanging ? '새로운 문제를 준비하고 있어요...' : currentQuestion?.text}
               </h2>
