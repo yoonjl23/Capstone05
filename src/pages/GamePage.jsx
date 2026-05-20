@@ -72,7 +72,7 @@ export default function GamePage({
 
     const startSession = async () => {
       try {
-        const res = await fetch('http://localhost:8080/api/game-sessions/start', {
+        const res = await fetch('http://localhost:8082/api/game-sessions/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -103,7 +103,7 @@ export default function GamePage({
     }
     
     try {
-      await fetch(`http://localhost:8080/api/game-sessions/${sessionIdRef.current}/answers`, {
+      await fetch(`http://localhost:8082/api/game-sessions/${sessionIdRef.current}/answers`, {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({
@@ -123,7 +123,7 @@ export default function GamePage({
     if (!sessionIdRef.current) return
     
     try {
-      await fetch(`http://localhost:8080/api/game-sessions/${sessionIdRef.current}/finish`, {
+      await fetch(`http://localhost:8082/api/game-sessions/${sessionIdRef.current}/finish`, {
         method: 'POST'
       })
     } catch (e) {
@@ -147,7 +147,7 @@ export default function GamePage({
       setIsQuestionChanging(true)
 
       try {
-        const response = await fetch('http://localhost:8080/api/emotion/quiz')
+        const response = await fetch('http://localhost:8082/api/emotion/quiz')
         
         if (!response.ok) {
           throw new Error('Spring Boot 서버에서 퀴즈를 가져오지 못했습니다.')
@@ -349,7 +349,7 @@ export default function GamePage({
       const base64Image = canvas.toDataURL('image/jpeg', 0.5)
 
       try {
-        const response = await fetch('http://localhost:8080/api/emotion/analyze', {
+        const response = await fetch('http://localhost:8082/api/emotion/analyze', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ image: base64Image })
