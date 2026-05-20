@@ -4,7 +4,7 @@ import Layout from '../components/Layout'
 import SmileLogo from '../components/SmileLogo'
 import { api } from '../services/api'
 
-export default function LoginPage({ setView }) {
+export default function LoginPage({ setView, setUsername }) {
   const [form, setForm] = useState({
     userId: '',
     password: '',
@@ -47,6 +47,11 @@ export default function LoginPage({ setView }) {
   
       if (result.accessToken) {
         localStorage.setItem('accessToken', result.accessToken)
+      }
+
+      if (result.user?.username) {
+        localStorage.setItem('username', result.user.username)
+        setUsername(result.user.username)
       }
   
       alert('로그인 성공')

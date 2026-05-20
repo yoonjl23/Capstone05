@@ -4,9 +4,11 @@ import SignupPage from './pages/SignupPage'
 import MenuPage from './pages/MenuPage'
 import MirrorPage from './pages/MirrorPage.jsx'
 import GamePage from './pages/GamePage'
+import Game2Page from './pages/Game2Page.jsx'
 import ResultPage from './pages/ResultPage'
 import CollectionPage from './pages/CollectionPage'
 import StatsPage from './pages/StatsPage'
+import { GAME_MODE } from './constants/gameMode.js'
 
 export default function App() {
   const [view, setView] = useState('login')
@@ -14,16 +16,34 @@ export default function App() {
   const [gameMode, setGameMode] = useState(null)
   const [gameScore, setGameScore] = useState(0)
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0)
+  const [userId, setUserId] = useState(
+    localStorage.getItem("userId") || ''
+  )
+  const [username, setUsername] = useState(
+    localStorage.getItem("username") || ''
+  )
 
   const startGame = (mode) => {
     setGameMode(mode)
     setGameScore(0)
     setCurrentQuestionIdx(0)
-    setView('game')
+    
+    // 감정 표현하기는 game2로, 상황별 표정짓기는 game으로
+    if (mode === GAME_MODE.EXPRESSION) {
+      setView('game2')
+    } else {
+      setView('game')
+    }
   }
 
   if (view === 'login') {
-    return <LoginPage setView={setView} />
+    return (
+      <LoginPage
+        setView={setView}
+        setUserId={setUserId}
+        setUsername={setUsername}
+      />
+    )
   }
 
   if (view === 'signup') {
@@ -34,10 +54,12 @@ export default function App() {
     return (
       <MenuPage
         setView={setView}
-        onStartExpression={() => startGame('expression')}
-        onStartInference={() => startGame('inference')}
+        userId={userId}
+        onStartExpression={() => startGame(GAME_MODE.EXPRESSION)}
+        onStartInference={() => startGame(GAME_MODE.INFERENCE)}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        username={username}
       />
     )
   }
@@ -63,6 +85,23 @@ export default function App() {
         setCurrentQuestionIdx={setCurrentQuestionIdx}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        userId={userId}
+      />
+    )
+  }
+
+  if (view === 'game2') {
+    return (
+      <Game2Page
+        setView={setView}
+        gameMode={gameMode}
+        gameScore={gameScore}
+        setGameScore={setGameScore}
+        currentQuestionIdx={currentQuestionIdx}
+        setCurrentQuestionIdx={setCurrentQuestionIdx}
+        isMuted={isMuted}
+        setIsMuted={setIsMuted}
+        userId={userId}
       />
     )
   }
@@ -95,6 +134,7 @@ export default function App() {
         setView={setView}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        userId={userId}
       />
     )
   }
