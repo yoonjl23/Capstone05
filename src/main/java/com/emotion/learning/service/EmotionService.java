@@ -14,8 +14,8 @@ public class EmotionService {
 
     private final RestTemplate restTemplate;
     // Docker Compose 서비스 이름사용
-    private final String AI_URL = "http://localhost:5000/predict/frame";
-    private final String AI_QUIZ_URL = "http://localhost:5000/quiz";
+    private final String AI_URL = "http://ai-server:5000/predict/frame";
+    private final String AI_QUIZ_URL = "http://ai-server:5000/quiz";
 
     public EmotionResponseDto analyzeWithAi(Map<String, String> request) {
         try {
