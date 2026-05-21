@@ -304,7 +304,7 @@ quiz_manager = QuizManager()
 
 @app.route('/quiz', methods=["GET"])
 def get_quiz():
-    result = quiz_manager.generate_question()
+    result = quiz_manager.generate_question_batch()
     return jsonify(result)
 
 # ── 진입점 ─────────────────────────────────────────────────

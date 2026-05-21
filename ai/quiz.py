@@ -29,10 +29,10 @@ class QuizManager:
             }
         ]
 
-    def generate_question(self) -> dict:
+    def generate_question_batch(self) -> list:
         """새로운 SDK 방식을 사용하여 퀴즈 문제를 생성합니다."""
         prompt = (
-            "유아용 감정 표현 게임을 위한 문제를 1개 만들어 JSON으로 출력하세요.\n"
+            "유아용 감정 표현 게임을 위한 문제를 5개 만들어 JSON 배열(Array) 형식으로 출력하세요.\n"
             "상황 설명(text) 작성 지침:\n"
             "- 반드시 한 문장으로만 작성하세요. (예: '생일날 친구들이 깜짝 파티를 준비해 줬어요!')\n"
             "- 문장은 '~요!' 또는 '~어요!' 로 끝내세요.\n"
@@ -40,11 +40,10 @@ class QuizManager:
             "- 이전과 겹치지 않는 새로운 소재를 사용하세요.\n"
             "- 말투는 아주 다정하고 친절한 한국어로 작성하세요.\n\n"
             f"정답(target)은 반드시 다음 영문으로 된 4가지 감정 중 하나여야 합니다: {', '.join(self.ALLOWED_EMOTIONS)}\n"
-            "형식: {\"text\": \"상황 설명\", \"target\": \"감정\", \"type\": \"표정 놀이\"}"
+            "출력 형식(반드시 배열로 시작하고 끝날 것): [{\"text\": \"상황 설명\", \"target\": \"감정\", \"type\": \"표정 놀이\"}, ...]"
         )
         
         try:
-            # 새로운 SDK의 콘텐츠 생성 방식
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
@@ -55,17 +54,17 @@ class QuizManager:
                 )
             )
             
-            # 새 SDK는 response.text를 통해 결과값에 바로 접근 가능합니다.
             data = json.loads(response.text)
             
-            if data.get("target") not in self.ALLOWED_EMOTIONS:
-                return random.choice(self.DEMO_QUESTIONS)
+            # 응답이 리스트(배열) 형태인지 확인
+            if isinstance(data, list) and len(data) > 0:
+                return data
+            else:
+                return self.DEMO_QUESTIONS
                 
-            return data
-            
         except Exception as e:
-            print(f"Gemini API 오류 (New SDK): {e}")
-            return random.choice(self.DEMO_QUESTIONS)
+            print(f"Gemini API 오류: {e}")
+            return self.DEMO_QUESTIONS
 
     def explain_emotion(self, emotion: str, situation: str) -> str:
         """새로운 SDK 방식을 사용하여 감정을 설명합니다."""
