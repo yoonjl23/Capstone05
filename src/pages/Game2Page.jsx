@@ -69,6 +69,7 @@ export default function GamePage({
 
   useEffect(() => {
     stateRef.current = {
+      ...stateRef.current,
       currentTarget,
       feedback,
       isQuestionChanging,
@@ -151,6 +152,8 @@ export default function GamePage({
     setIsLoading(true)
     setFeedback(null)
     stateRef.current.isScored = false // 새 문제 시작 시 채점 초기화
+
+    setIsQuestionChanging(true)
 
     try {
       const quiz = FIXED_QUIZ_DATASET[currentQuestionIdx]

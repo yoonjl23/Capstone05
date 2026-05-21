@@ -137,7 +137,7 @@ export default function GamePage({
     stateRef.current.feedback = feedback
     stateRef.current.isQuestionChanging = isQuestionChanging
     stateRef.current.timeLeft = timeLeft
-    stateRef.current.curretnQuestionIdx = currentQuestionIdx
+    stateRef.current.currentQuestionIdx = currentQuestionIdx
   }, [currentTarget, feedback, isQuestionChanging, timeLeft, currentQuestionIdx])
 
   useEffect(() => {
