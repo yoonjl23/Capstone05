@@ -9,6 +9,8 @@ POSTGRES_PASSWORD=emotion123
 SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/emotion_db
 SPRING_DATASOURCE_USERNAME=emotion_user
 SPRING_DATASOURCE_PASSWORD=emotion123
+
+GEMINI_API_KEY=geminikey
 ```
 주의 사항
 - 공백 없이 `KEY=VALUE` 형태로 작성
