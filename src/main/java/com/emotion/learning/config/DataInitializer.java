@@ -9,8 +9,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class DataInitializer {
-
-    private final QuestionRepository questionRepository;
+    
     private final CharacterCardRepository characterCardRepository;
 
     @PostConstruct
