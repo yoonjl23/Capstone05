@@ -135,6 +135,7 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         userId={userId}
+        username={username}
       />
     )
   }

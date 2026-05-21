@@ -8,7 +8,7 @@ const EMOTION_INFO = {
   neutral: { name: '평온', icon: '😐' }
 }
 
-export default function StatsPage({ setView, isMuted, setIsMuted, userId }) {
+export default function StatsPage({ setView, isMuted, setIsMuted, userId, username }) {
   
   const [stats, setStats] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -35,7 +35,7 @@ export default function StatsPage({ setView, isMuted, setIsMuted, userId }) {
 
   if (isLoading || !stats) {
     return (
-      <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+      <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted} username={username}>
         <div className="h-full flex items-center justify-center bg-[#FFFBF5]">
           <h2 className="text-3xl font-black text-gray-400 animate-pulse">데이터를 불러오는 중...</h2>
         </div>
@@ -44,7 +44,7 @@ export default function StatsPage({ setView, isMuted, setIsMuted, userId }) {
   }
 
   return (
-    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted} username={username}>
       <div className="h-full bg-[#FFFBF5] p-8">
         <div className="max-w-3xl mx-auto">
 
