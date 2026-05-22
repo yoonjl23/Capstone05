@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class ProgressDto {
@@ -14,7 +15,10 @@ public class ProgressDto {
         private String code;
         private String name;
         private Integer requiredLevel;
+        private String themeCode;
+        private String imageName;
         private Boolean unlocked;
+        private LocalDateTime unlockedAt;
     }
 
     @Getter @Builder @AllArgsConstructor

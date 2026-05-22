@@ -42,6 +42,7 @@ public class GameSessionDto {
         private Integer totalScore;
         private Integer totalExp;
         private Integer currentLevel;
+        private List<ProgressDto.CharacterDto> newlyUnlockedCharacters;
     }
 
     @Getter @Builder @AllArgsConstructor

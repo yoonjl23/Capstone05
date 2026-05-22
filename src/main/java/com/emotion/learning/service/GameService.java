@@ -85,7 +85,8 @@ public class GameService {
         session.setScore(session.getScore() + earnedScore);
         session.setEarnedExp(session.getEarnedExp() + earnedExp);
 
-        UserProgress progress = progressService.addExp(session.getUser(), earnedExp);
+        ProgressService.ProgressUpdate progressUpdate = progressService.addExp(session.getUser(), earnedExp);
+        UserProgress progress = progressUpdate.progress();
 
         return GameSessionDto.SubmitAnswerResponse.builder()
                 .correct(correct)
@@ -94,6 +95,7 @@ public class GameService {
                 .totalScore(session.getScore())
                 .totalExp(progress.getTotalExp())
                 .currentLevel(progress.getLevel())
+                .newlyUnlockedCharacters(progressUpdate.newlyUnlockedCharacters())
                 .build();
     }
 
