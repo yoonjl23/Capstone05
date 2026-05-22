@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import Layout from '../components/Layout'
 import { GAME_MODE } from '../constants/gameMode'
+import { appendPendingUnlocks } from '../utils/unlockQueue'
 
 const EMOTION_THEMES = {
   positive: { key: 'positive', label: '기분이 좋아요!', icon: '😄', color: 'bg-green-50', border: 'border-green-200' },
@@ -33,7 +34,7 @@ export default function GamePage({
   setCurrentQuestionIdx,
   isMuted,
   setIsMuted,
-  userId
+  loginId
 }) {
   const videoRef = useRef(null)
   const audioRef = useRef(null)
@@ -83,7 +84,7 @@ export default function GamePage({
 
   // 게임 시작 시 호출하는 세션
   useEffect(() => {
-    if (!userId || startedRef.current) return
+    if (!loginId || startedRef.current) return
 
     startedRef.current = true
 
@@ -93,7 +94,7 @@ export default function GamePage({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          loginId: userId,
+          loginId,
           mode: gameMode
         })
       })
@@ -106,7 +107,7 @@ export default function GamePage({
   }
 
   startSession()
-  }, [userId, gameMode])
+  }, [loginId, gameMode])
 
   useEffect(() => {
     sessionIdRef.current = sessionId
@@ -120,7 +121,7 @@ export default function GamePage({
     }
     
     try {
-      await fetch(`http://localhost:8082/api/game-sessions/${sessionIdRef.current}/answers`, {
+      const response = await fetch(`http://localhost:8082/api/game-sessions/${sessionIdRef.current}/answers`, {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({
@@ -130,6 +131,11 @@ export default function GamePage({
           confidence: result.confidence
         })
       })
+      if (!response.ok) {
+        throw new Error('답안 제출에 실패했습니다.')
+      }
+      const data = await response.json()
+      appendPendingUnlocks(data.newlyUnlockedCharacters || [])
     } catch (e) {
       console.error('답 제출 실패', e)
     }

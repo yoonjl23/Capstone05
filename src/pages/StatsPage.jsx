@@ -8,17 +8,17 @@ const EMOTION_INFO = {
   neutral: { name: '평온', icon: '😐' }
 }
 
-export default function StatsPage({ setView, isMuted, setIsMuted, userId, username }) {
+export default function StatsPage({ setView, isMuted, setIsMuted, loginId, username }) {
   
   const [stats, setStats] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (!userId) return
+      if (!loginId) return
 
       try {
-        const response = await fetch(`http://localhost:8082/api/stats/${userId}`)
+        const response = await fetch(`http://localhost:8082/api/stats/${loginId}`)
         if (response.ok) {
           const data = await response.json()
           setStats(data)
@@ -31,7 +31,7 @@ export default function StatsPage({ setView, isMuted, setIsMuted, userId, userna
     }
 
     fetchStats()
-  }, [userId])
+  }, [loginId])
 
   if (isLoading || !stats) {
     return (

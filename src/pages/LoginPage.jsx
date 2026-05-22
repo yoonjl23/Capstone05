@@ -1,15 +1,19 @@
 import { useState } from 'react'
-import { User, Lock } from 'lucide-react'
+import { Lock, User } from 'lucide-react'
 import Layout from '../components/Layout'
 import SmileLogo from '../components/SmileLogo'
 import { api } from '../services/api'
 
-export default function LoginPage({ setView, setUsername, setUserId }) {
+export default function LoginPage({
+  setView,
+  setLoginId,
+  setUserId,
+  setUsername,
+}) {
   const [form, setForm] = useState({
     userId: '',
     password: '',
   })
-
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -24,41 +28,46 @@ export default function LoginPage({ setView, setUsername, setUserId }) {
 
   const handleLogin = async () => {
     setErrorMessage('')
-  
+
     if (!form.userId.trim()) {
-      setErrorMessage('아이디를 입력해주세요.')
+      setErrorMessage('아이디를 입력해 주세요.')
       return
     }
-  
+
     if (!form.password.trim()) {
-      setErrorMessage('비밀번호를 입력해주세요.')
+      setErrorMessage('비밀번호를 입력해 주세요.')
       return
     }
-  
+
     try {
       setLoading(true)
-  
+
       const result = await api.login({
         userId: form.userId.trim(),
         password: form.password,
       })
-  
-      console.log('로그인 응답:', result)
-  
+
       if (result.accessToken) {
         localStorage.setItem('accessToken', result.accessToken)
       }
 
-      const loggedInUserId = form.userId.trim();
-      localStorage.setItem('userId', loggedInUserId);
-      setUserId(loggedInUserId);
-      
-      if (result.user?.username) {
-        localStorage.setItem('username', result.user.username)
-        setUsername(result.user.username)
+      const nextLoginId = result.user?.userId || form.userId.trim()
+      const nextUserId = result.user?.id ? String(result.user.id) : ''
+      const nextUsername = result.user?.username || ''
+
+      localStorage.setItem('loginId', nextLoginId)
+      setLoginId(nextLoginId)
+
+      if (nextUserId) {
+        localStorage.setItem('userPk', nextUserId)
+        setUserId(nextUserId)
       }
-  
-      alert('로그인 성공')
+
+      if (nextUsername) {
+        localStorage.setItem('username', nextUsername)
+        setUsername(nextUsername)
+      }
+
       setView('menu')
     } catch (error) {
       setErrorMessage(error.message || '로그인 중 오류가 발생했습니다.')
@@ -78,15 +87,23 @@ export default function LoginPage({ setView, setUsername, setUserId }) {
       <div className="h-full flex">
         <div className="w-1/2 bg-yellow-400 flex flex-col items-center justify-center p-12 text-yellow-900">
           <SmileLogo size="w-64 h-64" color="text-white" />
-          <h2 className="text-5xl font-black mt-8 mb-4 tracking-tighter">감자놀이터</h2>
-          <p className="text-xl font-bold opacity-80">내 마음이 쑥쑥 자라나는 곳</p>
+          <h2 className="text-5xl font-black mt-8 mb-4 tracking-tighter">
+            감자이터
+          </h2>
+          <p className="text-xl font-bold opacity-80">
+            내 마음이 튼튼 자라나는 곳
+          </p>
         </div>
 
         <div className="w-1/2 flex flex-col items-center justify-center p-16 space-y-8 bg-white">
           <div className="w-full space-y-5">
             <div className="text-center mb-8">
-              <h3 className="text-3xl font-black text-gray-800">반가워요 친구들!</h3>
-              <p className="text-gray-400 font-medium">아이디와 비밀번호를 입력해줘요</p>
+              <h3 className="text-3xl font-black text-gray-800">
+                반가워요 친구야
+              </h3>
+              <p className="text-gray-400 font-medium">
+                아이디와 비밀번호를 입력해 주세요
+              </p>
             </div>
 
             <div className="relative">
@@ -129,14 +146,14 @@ export default function LoginPage({ setView, setUsername, setUserId }) {
             disabled={loading}
             className="w-full py-5 bg-yellow-400 text-yellow-900 rounded-[28px] font-black text-2xl hover:bg-yellow-500 shadow-xl shadow-yellow-200 transition active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? '입장 중...' : '놀이터 입장하기!'}
+            {loading ? '입장 중...' : '감자이터 입장하기!'}
           </button>
 
           <button
             onClick={() => setView('signup')}
             className="text-gray-400 font-bold hover:text-yellow-600 transition"
           >
-            처음인가요? 회원가입 하기
+            처음인가요? 회원가입 하러 가기
           </button>
         </div>
       </div>
