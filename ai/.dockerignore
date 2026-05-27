@@ -1,4 +1,5 @@
 # Hugging Face cache
-.hf_cache/
+hf_cache/
 .cache/
 **/.cache/
+*.pth
