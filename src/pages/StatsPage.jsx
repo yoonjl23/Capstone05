@@ -18,7 +18,7 @@ export default function StatsPage({ setView, isMuted, setIsMuted, loginId, usern
       if (!loginId) return
 
       try {
-        const response = await fetch(`http://localhost:8082/api/stats/${loginId}`)
+        const response = await fetch(`/api/stats/${loginId}`)
         if (response.ok) {
           const data = await response.json()
           setStats(data)

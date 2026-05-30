@@ -17,6 +17,7 @@ const EMOTION_THEMES = {
   loading: { key: 'loading', label: '마음을 읽는 중...', icon: '👀', color: 'bg-white', border: 'border-gray-100' }
 }
 
+// fallback용으로 유지
 const FIXED_QUIZ_DATASET = [
   { id: 1, text: "활짝 웃으며 기쁜 표정을 지어보세요!", target: "positive", type: "감정 표현하기" },
   { id: 2, text: "슬픈 표정을 지어볼까요?", target: "negative", type: "감정 표현하기" },
@@ -90,40 +91,40 @@ export default function GamePage({
 
     const startSession = async () => {
       try {
-        const res = await fetch('http://localhost:8082/api/game-sessions/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          loginId,
-          mode: gameMode
+        const res = await fetch('/api/game-sessions/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            loginId,
+            mode: gameMode
+          })
         })
-      })
-      
-      const data = await res.json()
-      setSessionId(data.sessionId)
-    } catch (e) {
-      console.error('세션 시작 실패', e)
-    }
-  }
 
-  startSession()
+        const data = await res.json()
+        setSessionId(data.sessionId)
+      } catch (e) {
+        console.error('세션 시작 실패', e)
+      }
+    }
+
+    startSession()
   }, [loginId, gameMode])
 
   useEffect(() => {
     sessionIdRef.current = sessionId
   }, [sessionId])
 
-   // 문제 라운드 마다 정답 저장
+  // 문제 라운드 마다 정답 저장
   const submitAnswer = async (result) => {
     if (!sessionIdRef.current || result?.questionId == null) {
       console.warn('답 제출 스킵됨', sessionIdRef.current, result)
-      return 
+      return
     }
-    
+
     try {
-      const response = await fetch(`http://localhost:8082/api/game-sessions/${sessionIdRef.current}/answers`, {
+      const response = await fetch(`/api/game-sessions/${sessionIdRef.current}/answers`, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           questionId: result.questionId,
           detectedEmotion: result.emotion,
@@ -144,9 +145,9 @@ export default function GamePage({
   // 게임 끝
   const finishGame = async () => {
     if (!sessionIdRef.current) return
-    
+
     try {
-      await fetch(`http://localhost:8082/api/game-sessions/${sessionIdRef.current}/finish`, {
+      await fetch(`/api/game-sessions/${sessionIdRef.current}/finish`, {
         method: 'POST'
       })
     } catch (e) {
@@ -154,28 +155,48 @@ export default function GamePage({
     }
   }
 
-  const loadLocalQuestion = () => {
+  // ✅ 백엔드 API로 문제 생성
+  const loadLocalQuestion = async () => {
     setIsLoading(true)
     setFeedback(null)
-    stateRef.current.isScored = false // 새 문제 시작 시 채점 초기화
-
+    stateRef.current.isScored = false
     setIsQuestionChanging(true)
 
     try {
-      const quiz = FIXED_QUIZ_DATASET[currentQuestionIdx]
+      const res = await fetch('/api/quiz/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          questionIndex: currentQuestionIdx,
+          mode: gameMode,
+          loginId
+        })
+      })
+
+      if (!res.ok) throw new Error('문제 생성 실패')
+
+      const quiz = await res.json()
+
       if (quiz) {
         setCurrentQuestion(quiz)
         setTimeLeft(10)
-        setIsQuestionChanging(true)
-        setTimeout(() => {
-          setIsQuestionChanging(false)
-        }, 1500)
+        setTimeout(() => setIsQuestionChanging(false), 1500)
       } else {
         finishGame()
         setView('result')
       }
     } catch (error) {
-      console.error('문제 로드 실패: ', error)
+      console.error('문제 로드 실패, fallback 사용: ', error)
+      // API 실패 시 fallback
+      const quiz = FIXED_QUIZ_DATASET[currentQuestionIdx]
+      if (quiz) {
+        setCurrentQuestion(quiz)
+        setTimeLeft(10)
+        setTimeout(() => setIsQuestionChanging(false), 1500)
+      } else {
+        finishGame()
+        setView('result')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -208,7 +229,7 @@ export default function GamePage({
     setFeedback(null)
     setTimeLeft(10)
     setDetected(EMOTION_THEMES.loading)
-    stateRef.current.isScored = false // 다음 문제로 갈 때 채점 잠금 해제
+    stateRef.current.isScored = false
 
     if (currentQuestionIdx + 1 < totalQuestions) {
       setCurrentQuestionIdx(prev => prev + 1)
@@ -262,22 +283,22 @@ export default function GamePage({
     let stream = null
     const startVideo = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
+        stream = await navigator.mediaDevices.getUserMedia({
           video: { width: 640, height: 480 }
         })
         if (videoRef.current) {
           videoRef.current.srcObject = stream
         }
       } catch (error) {
-        console.error('카메라 실행 실패:', error) 
+        console.error('카메라 실행 실패:', error)
       }
     }
     startVideo()
 
     return () => {
-      if (stream) stream.getTracks().forEach(track => track.stop()) 
+      if (stream) stream.getTracks().forEach(track => track.stop())
     }
-  }, []) 
+  }, [])
 
   // 주기적으로 화면 캡처 및 분석하는 로직
   useEffect(() => {
@@ -287,7 +308,7 @@ export default function GamePage({
     const captureAndAnalyze = async () => {
       const state = stateRef.current
 
-      if (isAnalyzing || state.feedback !== null || state.isQuestionChanging || !state.currentTarget || state.isLoading || state.isReading || state.timeLeft <= 0 || !videoRef.current || !canvasRef.current) return 
+      if (isAnalyzing || state.feedback !== null || state.isQuestionChanging || !state.currentTarget || state.isLoading || state.isReading || state.timeLeft <= 0 || !videoRef.current || !canvasRef.current) return
 
       isAnalyzing = true
       const video = videoRef.current
@@ -305,31 +326,29 @@ export default function GamePage({
       const base64Image = canvas.toDataURL('image/jpeg', 0.5)
 
       try {
-        const response = await fetch('http://localhost:8082/api/emotion/analyze', {
+        const response = await fetch('/api/emotion/analyze', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: base64Image })
         })
 
-        if (!response.ok) throw new Error('네트워크 응답 상태 비정상');
+        if (!response.ok) throw new Error('네트워크 응답 상태 비정상')
 
-        const resText = await response.text();
-        if (!resText) return;
+        const resText = await response.text()
+        if (!resText) return
 
-        // API 응답 대기 중에 상태가 변했을 수 있으니 다시 확인
         if (stateRef.current.feedback !== null || stateRef.current.isQuestionChanging || stateRef.current.timeLeft <= 0) return
 
-        const data = JSON.parse(resText);
+        const data = JSON.parse(resText)
         const emotionKey = data?.emotion_en || 'neutral'
         const confidenceScore = data?.confidence || 0
 
         setDetected(prev => {
-            if (prev.key === emotionKey) return prev
-            return EMOTION_THEMES[emotionKey] || EMOTION_THEMES.neutral
+          if (prev.key === emotionKey) return prev
+          return EMOTION_THEMES[emotionKey] || EMOTION_THEMES.neutral
         })
 
         if (emotionKey === stateRef.current.currentTarget && stateRef.current.feedback === null && stateRef.current.timeLeft > 0) {
-          // 중복 채점 방지 장치 확인
           if (!stateRef.current.isScored) {
             stateRef.current.isScored = true
 
@@ -352,9 +371,9 @@ export default function GamePage({
       }
     }
 
-    intervalId = setInterval(captureAndAnalyze, 1000) 
-    return () => clearInterval(intervalId) 
-  }, [setGameScore]) 
+    intervalId = setInterval(captureAndAnalyze, 1000)
+    return () => clearInterval(intervalId)
+  }, [setGameScore])
 
   return (
     <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
@@ -405,7 +424,6 @@ export default function GamePage({
               <p className="text-xs font-black text-black/30 uppercase tracking-widest mb-1">
                 AI 마음 분석기
               </p>
-              {/* 💡 문제 3 해결: "새로운 문제 준비" 텍스트 분리 */}
               <h3 className="text-4xl font-black text-gray-800">
                 {detected.key === currentTarget && !feedback ? '찾았다!' : detected.label}
               </h3>
@@ -432,24 +450,23 @@ export default function GamePage({
                 {currentQuestion?.type}
               </div>
 
-              {/* 💡 문제 3 해결: "새로운 문제 준비" 텍스트를 문제 텍스트 자리로 배치 */}
               <h2 className="text-4xl font-black leading-snug text-gray-800">
                 {isQuestionChanging ? '새로운 문제를 준비하고 있어요...' : currentQuestion?.text}
               </h2>
             </div>
 
             <div className="mt-10">
-                <div className="flex flex-col gap-3">
-                  <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                    <div
-                      className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 3 ? 'bg-red-500' : 'bg-yellow-400'}`}
-                      style={{ width: `${(timeLeft / 10) * 100}%` }}
-                    />
-                  </div>
-                  <p className="text-center text-sm font-bold text-gray-300 mt-2">
-                    시간이 지나면 자동으로 넘어가요!
-                  </p>
+              <div className="flex flex-col gap-3">
+                <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                  <div
+                    className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 3 ? 'bg-red-500' : 'bg-yellow-400'}`}
+                    style={{ width: `${(timeLeft / 10) * 100}%` }}
+                  />
                 </div>
+                <p className="text-center text-sm font-bold text-gray-300 mt-2">
+                  시간이 지나면 자동으로 넘어가요!
+                </p>
+              </div>
             </div>
           </div>
 

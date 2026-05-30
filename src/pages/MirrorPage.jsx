@@ -60,7 +60,7 @@ export default function MirrorPage({ setView, isMuted, setIsMuted }) {
       const base64Image = canvas.toDataURL('image/jpeg', 0.5)
 
       try {
-        const response = await fetch('http://localhost:8082/api/emotion/analyze', {
+        const response = await fetch('/api/emotion/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image: base64Image })
