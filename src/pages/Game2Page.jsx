@@ -155,7 +155,7 @@ export default function GamePage({
     }
   }
 
-  // ✅ 백엔드 API로 문제 생성
+  // ✅ GET /api/emotion/quiz 호출 후 인덱스로 문제 선택
   const loadLocalQuestion = async () => {
     setIsLoading(true)
     setFeedback(null)
@@ -163,19 +163,14 @@ export default function GamePage({
     setIsQuestionChanging(true)
 
     try {
-      const res = await fetch('/api/quiz/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          questionIndex: currentQuestionIdx,
-          mode: gameMode,
-          loginId
-        })
+      const res = await fetch('/api/emotion/quiz', {
+        method: 'GET'
       })
 
       if (!res.ok) throw new Error('문제 생성 실패')
 
-      const quiz = await res.json()
+      const quizList = await res.json()         // 배열로 옴
+      const quiz = quizList[currentQuestionIdx]  // 인덱스로 하나 선택
 
       if (quiz) {
         setCurrentQuestion(quiz)
@@ -187,7 +182,6 @@ export default function GamePage({
       }
     } catch (error) {
       console.error('문제 로드 실패, fallback 사용: ', error)
-      // API 실패 시 fallback
       const quiz = FIXED_QUIZ_DATASET[currentQuestionIdx]
       if (quiz) {
         setCurrentQuestion(quiz)
