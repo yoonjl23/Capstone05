@@ -1,4 +1,4 @@
-import { Stars, Volume2, VolumeX } from 'lucide-react'
+import { Stars, Volume2, VolumeX, LogOut } from 'lucide-react'
 import SmileLogo from './SmileLogo'
 
 export default function Layout({
@@ -7,7 +7,8 @@ export default function Layout({
   setView,
   isMuted,
   setIsMuted,
-  username
+  username,
+  onLogout
 }) {
   return (
     <div className="min-h-screen bg-[#FFFBF5] flex items-center justify-center p-6 font-sans text-gray-800">
@@ -28,23 +29,30 @@ export default function Layout({
                 감자놀이터
               </h1>
             </div>
-
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 bg-yellow-500/30 px-4 py-1.5 rounded-full">
                 <Stars size={18} className="text-yellow-100" />
                 <span className="text-sm font-bold">{username ? `${username} 안녕!` : '우리친구 안녕!'}</span>
               </div>
-
               <button
                 onClick={() => setIsMuted(!isMuted)}
                 className="p-2 hover:bg-yellow-500 rounded-full transition"
               >
                 {isMuted ? <VolumeX size={24} /> : <Volume2 size={24} />}
               </button>
+              {/* ✅ 로그아웃 버튼 */}
+              {onLogout && (
+                <button
+                  onClick={onLogout}
+                  className="p-2 hover:bg-yellow-500 rounded-full transition"
+                  title="로그아웃"
+                >
+                  <LogOut size={24} />
+                </button>
+              )}
             </div>
           </header>
         )}
-
         <main className="flex-1 overflow-hidden relative">
           {children}
         </main>

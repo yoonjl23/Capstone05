@@ -13,10 +13,7 @@ import { getPreviewView } from './utils/devPreview.js'
 
 function getInitialView() {
   const previewView = getPreviewView()
-  if (previewView) {
-    return previewView
-  }
-
+  if (previewView) return previewView
   return localStorage.getItem('loginId') ? 'menu' : 'login'
 }
 
@@ -30,16 +27,25 @@ export default function App() {
   const [userId, setUserId] = useState(localStorage.getItem('userPk') || '')
   const [username, setUsername] = useState(localStorage.getItem('username') || '')
 
+  // ✅ 로그아웃 함수
+  const handleLogout = () => {
+    localStorage.removeItem('loginId')
+    localStorage.removeItem('userPk')
+    localStorage.removeItem('username')
+    setLoginId('')
+    setUserId('')
+    setUsername('')
+    setView('login')
+  }
+
   const startGame = (mode) => {
     setGameMode(mode)
     setGameScore(0)
     setCurrentQuestionIdx(0)
-
     if (mode === GAME_MODE.EXPRESSION) {
       setView('game2')
       return
     }
-
     setView('game')
   }
 
@@ -53,11 +59,9 @@ export default function App() {
       />
     )
   }
-
   if (view === 'signup') {
     return <SignupPage setView={setView} />
   }
-
   if (view === 'menu') {
     return (
       <MenuPage
@@ -69,20 +73,20 @@ export default function App() {
         onStartInference={() => startGame(GAME_MODE.INFERENCE)}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        onLogout={handleLogout}
       />
     )
   }
-
   if (view === 'mirror') {
     return (
       <MirrorPage
         setView={setView}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        onLogout={handleLogout}
       />
     )
   }
-
   if (view === 'game') {
     return (
       <GamePage
@@ -95,10 +99,10 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         loginId={loginId}
+        onLogout={handleLogout}
       />
     )
   }
-
   if (view === 'game2') {
     return (
       <Game2Page
@@ -111,10 +115,10 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         loginId={loginId}
+        onLogout={handleLogout}
       />
     )
   }
-
   if (view === 'result') {
     return (
       <ResultPage
@@ -123,10 +127,10 @@ export default function App() {
         totalQuestions={5}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        onLogout={handleLogout}
       />
     )
   }
-
   if (view === 'collection') {
     return (
       <CollectionPage
@@ -135,10 +139,10 @@ export default function App() {
         setIsMuted={setIsMuted}
         userId={userId}
         username={username}
+        onLogout={handleLogout}
       />
     )
   }
-
   if (view === 'stats') {
     return (
       <StatsPage
@@ -147,9 +151,9 @@ export default function App() {
         setIsMuted={setIsMuted}
         loginId={loginId}
         username={username}
+        onLogout={handleLogout}
       />
     )
   }
-
   return null
 }

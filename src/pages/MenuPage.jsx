@@ -23,6 +23,7 @@ export default function MenuPage({
   onStartInference,
   isMuted,
   setIsMuted,
+  onLogout,
 }) {
   const [unlockQueue, setUnlockQueue] = useState([])
   const [unlockIndex, setUnlockIndex] = useState(0)
@@ -65,6 +66,7 @@ export default function MenuPage({
       isMuted={isMuted}
       setIsMuted={setIsMuted}
       username={username}
+      onLogout={onLogout}
     >
       <div className="h-full flex flex-col items-center justify-center p-12 bg-[radial-gradient(circle_at_top,_#fff8d9,_#fff7ed_45%,_#fffaf5)]">
         <h2 className="text-4xl font-black text-gray-800 mb-12">
