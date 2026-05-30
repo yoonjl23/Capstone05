@@ -17,13 +17,23 @@ const EMOTION_THEMES = {
   loading: { key: 'loading', label: '마음을 읽는 중...', icon: '👀', color: 'bg-white', border: 'border-gray-100' }
 }
 
-const FIXED_QUIZ_DATASET = [
-  { id: 1, text: "활짝 웃으며 기쁜 표정을 지어보세요!", target: "positive", type: "감정 표현하기" },
-  { id: 2, text: "슬픈 표정을 지어볼까요?", target: "negative", type: "감정 표현하기" },
-  { id: 3, text: "우와! 깜짝 놀란 토끼 눈을 만들어보세요!", target: "surprise", type: "감정 표현하기" },
-  { id: 4, text: "아무 생각도 하지 않는 평온한 표정을 유지해보세요.", target: "neutral", type: "감정 표현하기" },
-  { id: 5, text: "다시 한번 신나게 싱글벙글 웃어볼까요?", target: "positive", type: "감정 표현하기" }
+// ✅ 8개로 늘린 고정 데이터셋 - 매번 랜덤 5개 선택
+const EXPRESSION_QUIZ_POOL = [
+  { text: "활짝 웃으며 기쁜 표정을 지어보세요!", target: "positive", type: "감정 표현하기" },
+  { text: "슬픈 표정을 지어볼까요?", target: "negative", type: "감정 표현하기" },
+  { text: "우와! 깜짝 놀란 토끼 눈을 만들어보세요!", target: "surprise", type: "감정 표현하기" },
+  { text: "아무 생각도 하지 않는 평온한 표정을 유지해보세요.", target: "neutral", type: "감정 표현하기" },
+  { text: "다시 한번 신나게 싱글벙글 웃어볼까요?", target: "positive", type: "감정 표현하기" },
+  { text: "울고 싶은 슬픈 표정을 만들어볼까요?", target: "negative", type: "감정 표현하기" },
+  { text: "눈을 크게 뜨고 놀란 표정을 해봐요!", target: "surprise", type: "감정 표현하기" },
+  { text: "편안하고 차분한 표정을 지어봐요!", target: "neutral", type: "감정 표현하기" },
 ]
+
+// 랜덤으로 5개 선택
+function getRandomQuiz() {
+  const shuffled = [...EXPRESSION_QUIZ_POOL].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 5)
+}
 
 export default function GamePage({
   setView,
@@ -54,6 +64,9 @@ export default function GamePage({
 
   const [currentQuestion, setCurrentQuestion] = useState(null)
   const [isQuestionChanging, setIsQuestionChanging] = useState(false)
+
+  // ✅ 게임 시작 시 랜덤 5개 문제 선택
+  const [quizList] = useState(() => getRandomQuiz())
 
   const totalQuestions = 5
   const currentTarget = currentQuestion?.target
@@ -113,7 +126,6 @@ export default function GamePage({
       return
     }
 
-    // ✅ loading 상태면 제출 스킵
     if (result.emotion === 'loading') {
       console.warn('감정 미감지 상태, 답 제출 스킵')
       return
@@ -151,44 +163,23 @@ export default function GamePage({
     }
   }
 
-  const loadLocalQuestion = async () => {
+  // ✅ API 호출 없이 로컬 quizList에서 문제 가져오기
+  const loadLocalQuestion = () => {
     setIsLoading(true)
     setFeedback(null)
     stateRef.current.isScored = false
     setIsQuestionChanging(true)
 
-    try {
-      const res = await fetch(`/api/emotion/quiz?mode=${gameMode}`, {
-        method: 'GET'
-      })
-
-      if (!res.ok) throw new Error('문제 생성 실패')
-
-      const quizList = await res.json()
-      const quiz = quizList[currentQuestionIdx]
-
-      if (quiz) {
-        setCurrentQuestion(quiz)
-        setTimeLeft(10)
-        setTimeout(() => setIsQuestionChanging(false), 1500)
-      } else {
-        finishGame()
-        setView('result')
-      }
-    } catch (error) {
-      console.error('문제 로드 실패, fallback 사용: ', error)
-      const quiz = FIXED_QUIZ_DATASET[currentQuestionIdx]
-      if (quiz) {
-        setCurrentQuestion(quiz)
-        setTimeLeft(10)
-        setTimeout(() => setIsQuestionChanging(false), 1500)
-      } else {
-        finishGame()
-        setView('result')
-      }
-    } finally {
-      setIsLoading(false)
+    const quiz = quizList[currentQuestionIdx]
+    if (quiz) {
+      setCurrentQuestion(quiz)
+      setTimeLeft(10)
+      setTimeout(() => setIsQuestionChanging(false), 1500)
+    } else {
+      finishGame()
+      setView('result')
     }
+    setIsLoading(false)
   }
 
   useEffect(() => {
