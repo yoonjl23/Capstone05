@@ -17,7 +17,6 @@ const EMOTION_THEMES = {
   loading: { key: 'loading', label: '마음을 읽는 중...', icon: '👀', color: 'bg-white', border: 'border-gray-100' }
 }
 
-// fallback용으로 유지
 const FIXED_QUIZ_DATASET = [
   { id: 1, text: "활짝 웃으며 기쁜 표정을 지어보세요!", target: "positive", type: "감정 표현하기" },
   { id: 2, text: "슬픈 표정을 지어볼까요?", target: "negative", type: "감정 표현하기" },
@@ -83,10 +82,8 @@ export default function GamePage({
     }
   }, [currentTarget, feedback, isQuestionChanging, timeLeft, isLoading, isReading, detected, currentQuestionIdx])
 
-  // 게임 시작 시 호출하는 세션
   useEffect(() => {
     if (!loginId || startedRef.current) return
-
     startedRef.current = true
 
     const startSession = async () => {
@@ -94,12 +91,8 @@ export default function GamePage({
         const res = await fetch('/api/game-sessions/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            loginId,
-            mode: gameMode
-          })
+          body: JSON.stringify({ loginId, mode: gameMode })
         })
-
         const data = await res.json()
         setSessionId(data.sessionId)
       } catch (e) {
@@ -114,10 +107,15 @@ export default function GamePage({
     sessionIdRef.current = sessionId
   }, [sessionId])
 
-  // 문제 라운드 마다 정답 저장
   const submitAnswer = async (result) => {
     if (!sessionIdRef.current || result?.questionId == null) {
       console.warn('답 제출 스킵됨', sessionIdRef.current, result)
+      return
+    }
+
+    // ✅ loading 상태면 제출 스킵
+    if (result.emotion === 'loading') {
+      console.warn('감정 미감지 상태, 답 제출 스킵')
       return
     }
 
@@ -142,10 +140,8 @@ export default function GamePage({
     }
   }
 
-  // 게임 끝
   const finishGame = async () => {
     if (!sessionIdRef.current) return
-
     try {
       await fetch(`/api/game-sessions/${sessionIdRef.current}/finish`, {
         method: 'POST'
@@ -155,7 +151,6 @@ export default function GamePage({
     }
   }
 
-  // ✅ GET /api/emotion/quiz 호출 후 인덱스로 문제 선택
   const loadLocalQuestion = async () => {
     setIsLoading(true)
     setFeedback(null)
@@ -163,14 +158,14 @@ export default function GamePage({
     setIsQuestionChanging(true)
 
     try {
-      const res = await fetch('/api/emotion/quiz', {
+      const res = await fetch(`/api/emotion/quiz?mode=${gameMode}`, {
         method: 'GET'
       })
 
       if (!res.ok) throw new Error('문제 생성 실패')
 
-      const quizList = await res.json()         // 배열로 옴
-      const quiz = quizList[currentQuestionIdx]  // 인덱스로 하나 선택
+      const quizList = await res.json()
+      const quiz = quizList[currentQuestionIdx]
 
       if (quiz) {
         setCurrentQuestion(quiz)
@@ -208,10 +203,8 @@ export default function GamePage({
       utterance.lang = 'ko-KR'
       utterance.rate = 1.05
       utterance.pitch = 1
-
       if (window.speechSynthesis) window.speechSynthesis.cancel()
       window.speechSynthesis.speak(utterance)
-
       utterance.onend = () => setIsReading(false)
     } catch (error) {
       console.error('음성 읽기 실패:', error)
@@ -254,14 +247,12 @@ export default function GamePage({
 
     if (!stateRef.current.isScored) {
       stateRef.current.isScored = true
-
       const result = {
         questionId: currentQuestionIdx + 1,
         emotion: detected.key,
         correct: false,
         confidence: 0
       }
-
       submitAnswer(result)
     }
     setFeedback('timeout')
@@ -277,31 +268,22 @@ export default function GamePage({
     let stream = null
     const startVideo = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 }
-        })
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-        }
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } })
+        if (videoRef.current) videoRef.current.srcObject = stream
       } catch (error) {
         console.error('카메라 실행 실패:', error)
       }
     }
     startVideo()
-
-    return () => {
-      if (stream) stream.getTracks().forEach(track => track.stop())
-    }
+    return () => { if (stream) stream.getTracks().forEach(track => track.stop()) }
   }, [])
 
-  // 주기적으로 화면 캡처 및 분석하는 로직
   useEffect(() => {
     let intervalId
     let isAnalyzing = false
 
     const captureAndAnalyze = async () => {
       const state = stateRef.current
-
       if (isAnalyzing || state.feedback !== null || state.isQuestionChanging || !state.currentTarget || state.isLoading || state.isReading || state.timeLeft <= 0 || !videoRef.current || !canvasRef.current) return
 
       isAnalyzing = true
@@ -311,7 +293,6 @@ export default function GamePage({
 
       canvas.width = 320
       canvas.height = 240
-
       context.save()
       context.scale(-1, 1)
       context.drawImage(video, -320, 0, 320, 240)
@@ -345,14 +326,12 @@ export default function GamePage({
         if (emotionKey === stateRef.current.currentTarget && stateRef.current.feedback === null && stateRef.current.timeLeft > 0) {
           if (!stateRef.current.isScored) {
             stateRef.current.isScored = true
-
             const result = {
               questionId: stateRef.current.currentQuestionIdx + 1,
               emotion: emotionKey,
               correct: true,
               confidence: confidenceScore
             }
-
             submitAnswer(result)
             setFeedback('correct')
             setGameScore(prev => prev + 1)
@@ -377,20 +356,13 @@ export default function GamePage({
       <div className="h-full flex p-8 gap-8">
         <div className="w-[55%] flex flex-col gap-6">
           <div className="flex-1 relative bg-gray-100 rounded-[40px] overflow-hidden border-[8px] border-white shadow-xl">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover scale-x-[-1]"
-            />
+            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover scale-x-[-1]" />
 
             {feedback === 'correct' && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-md">
                 <div className="flex flex-col items-center gap-6 p-12 rounded-[48px] bg-green-500 text-white shadow-2xl">
                   <CheckCircle2 size={140} />
-                  <span className="text-5xl font-black tracking-tight">
-                    우와! 맞았어요!
-                  </span>
+                  <span className="text-5xl font-black tracking-tight">우와! 맞았어요!</span>
                 </div>
               </div>
             )}
@@ -400,8 +372,7 @@ export default function GamePage({
                 <div className="flex flex-col items-center gap-6 p-12 rounded-[48px] bg-red-500 text-white shadow-2xl text-center">
                   <XCircle size={140} />
                   <span className="text-5xl font-black tracking-tight leading-tight">
-                    시간이 다 됐어요!
-                    <br />
+                    시간이 다 됐어요!<br />
                     <span className="text-2xl opacity-80">다음 문제로 넘어가요</span>
                   </span>
                 </div>
@@ -413,11 +384,8 @@ export default function GamePage({
             <div className="w-20 h-20 bg-white/40 rounded-3xl flex items-center justify-center text-5xl shadow-inner">
               {detected.icon}
             </div>
-
             <div className="flex-1">
-              <p className="text-xs font-black text-black/30 uppercase tracking-widest mb-1">
-                AI 마음 분석기
-              </p>
+              <p className="text-xs font-black text-black/30 uppercase tracking-widest mb-1">AI 마음 분석기</p>
               <h3 className="text-4xl font-black text-gray-800">
                 {detected.key === currentTarget && !feedback ? '찾았다!' : detected.label}
               </h3>
@@ -431,7 +399,6 @@ export default function GamePage({
               <div className="px-5 py-2 bg-yellow-100 text-yellow-700 rounded-full font-black text-sm uppercase tracking-wide">
                 놀이 {currentQuestionIdx + 1} / {totalQuestions}
               </div>
-
               <div className={`flex items-center gap-2 font-black ${timeLeft <= 3 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
                 <Timer size={20} />
                 <span className="text-2xl">{timeLeft}초</span>
@@ -443,7 +410,6 @@ export default function GamePage({
                 {isReading && <Volume1 size={14} className="animate-pulse" />}
                 {currentQuestion?.type}
               </div>
-
               <h2 className="text-4xl font-black leading-snug text-gray-800">
                 {isQuestionChanging ? '새로운 문제를 준비하고 있어요...' : currentQuestion?.text}
               </h2>
@@ -457,9 +423,7 @@ export default function GamePage({
                     style={{ width: `${(timeLeft / 10) * 100}%` }}
                   />
                 </div>
-                <p className="text-center text-sm font-bold text-gray-300 mt-2">
-                  시간이 지나면 자동으로 넘어가요!
-                </p>
+                <p className="text-center text-sm font-bold text-gray-300 mt-2">시간이 지나면 자동으로 넘어가요!</p>
               </div>
             </div>
           </div>
@@ -469,11 +433,9 @@ export default function GamePage({
               <div
                 key={index}
                 className={`h-4 flex-1 rounded-full shadow-inner transition-all duration-500 ${
-                  index === currentQuestionIdx
-                    ? 'bg-yellow-400 scale-y-125'
-                    : index < currentQuestionIdx
-                    ? 'bg-yellow-200'
-                    : 'bg-gray-100'
+                  index === currentQuestionIdx ? 'bg-yellow-400 scale-y-125'
+                  : index < currentQuestionIdx ? 'bg-yellow-200'
+                  : 'bg-gray-100'
                 }`}
               />
             ))}
