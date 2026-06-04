@@ -84,6 +84,7 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         onLogout={handleLogout}
+        username={username}
       />
     )
   }
@@ -100,6 +101,7 @@ export default function App() {
         setIsMuted={setIsMuted}
         loginId={loginId}
         onLogout={handleLogout}
+        username={username}
       />
     )
   }
@@ -116,6 +118,7 @@ export default function App() {
         setIsMuted={setIsMuted}
         loginId={loginId}
         onLogout={handleLogout}
+        username={username}
       />
     )
   }
