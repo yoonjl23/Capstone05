@@ -38,8 +38,8 @@ def get_model_path(filename: str) -> str:
     logger.info(f"Downloading {filename} from HuggingFace repo: {HF_REPO_ID} ...")
     return hf_hub_download(repo_id=HF_REPO_ID, filename=filename)
 
-SWIN_PATH     = os.environ.get("SWIN_PATH",     get_model_path("best_model_4class_swin_v2.pth"))
-CONVNEXT_PATH = os.environ.get("CONVNEXT_PATH", get_model_path("best_model_4class_convnext.pth"))
+SWIN_PATH     = os.environ.get("SWIN_PATH",     get_model_path("best_model_4class_swin_v4.pth"))
+CONVNEXT_PATH = os.environ.get("CONVNEXT_PATH", get_model_path("best_model_4class_convnext_3.pth"))
 DEVICE        = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 IMAGE_SIZE    = 224
 
