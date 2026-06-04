@@ -70,6 +70,7 @@ export default function App() {
         setView={setView}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        username={username}
       />
     )
   }
@@ -86,6 +87,7 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         userId={userId}
+        username={username}
       />
     )
   }
@@ -102,6 +104,7 @@ export default function App() {
         isMuted={isMuted}
         setIsMuted={setIsMuted}
         userId={userId}
+        username={username}
       />
     )
   }
@@ -114,6 +117,7 @@ export default function App() {
         totalQuestions={5}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        username={username}
       />
     )
   }
@@ -124,6 +128,7 @@ export default function App() {
         setView={setView}
         isMuted={isMuted}
         setIsMuted={setIsMuted}
+        username={username}
       />
     )
   }

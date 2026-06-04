@@ -6,12 +6,13 @@ export default function ResultPage({
   gameScore,
   totalQuestions,
   isMuted,
-  setIsMuted
+  setIsMuted,
+  username
 }) {
   const rate = Math.round((gameScore / totalQuestions) * 100)
 
   return (
-    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted} username={username}>
       <div className="h-full flex items-center justify-center p-12 gap-12">
         <div className="w-1/3 flex flex-col items-center text-center">
           <div className="bg-yellow-100 p-10 rounded-full mb-8 shadow-inner">

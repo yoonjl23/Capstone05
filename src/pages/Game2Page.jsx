@@ -33,7 +33,8 @@ export default function GamePage({
   setCurrentQuestionIdx,
   isMuted,
   setIsMuted,
-  userId
+  userId,
+  username
 }) {
   const videoRef = useRef(null)
   const audioRef = useRef(null)
@@ -351,7 +352,7 @@ export default function GamePage({
   }, [setGameScore]) 
 
   return (
-    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted} username={username}>
       <audio ref={audioRef} hidden />
       <canvas ref={canvasRef} className="hidden" />
 

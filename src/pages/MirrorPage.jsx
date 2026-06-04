@@ -13,7 +13,7 @@ const EMOTION_THEMES = {
   loading: { label: '마음 읽는 중...', icon: '👀', color: 'bg-white', border: 'border-gray-100' }
 }
 
-export default function MirrorPage({ setView, isMuted, setIsMuted }) {
+export default function MirrorPage({ setView, isMuted, setIsMuted, username }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)  // 이미지 캡처용 숨겨진 캔버스
   const [detected, setDetected] = useState(EMOTION_THEMES.loading)
@@ -97,7 +97,7 @@ export default function MirrorPage({ setView, isMuted, setIsMuted }) {
   }, [])
 
   return (
-    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted} username={username}>
       <canvas ref={canvasRef} className="hidden" />
       <div className="h-full flex p-8 gap-8">
         <div className="w-[55%] flex flex-col gap-6">

@@ -38,7 +38,7 @@ const cardImages = [
   level16,
 ]
 
-export default function CollectionPage({ setView, isMuted, setIsMuted }) {
+export default function CollectionPage({ setView, isMuted, setIsMuted, username }) {
   const [unlockedLevel, setUnlockedLevel] = useState(0)
   const [loading, setLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
@@ -69,7 +69,7 @@ export default function CollectionPage({ setView, isMuted, setIsMuted }) {
   }, [])
 
   return (
-    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted}>
+    <Layout setView={setView} isMuted={isMuted} setIsMuted={setIsMuted} username={username}>
       <div className="h-full bg-[#FFFBF5] p-8 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
