@@ -88,7 +88,7 @@ export default function LoginPage({
         <div className="w-1/2 bg-yellow-400 flex flex-col items-center justify-center p-12 text-yellow-900">
           <SmileLogo size="w-64 h-64" color="text-white" />
           <h2 className="text-5xl font-black mt-8 mb-4 tracking-tighter">
-            감자이터
+            감자놀이터
           </h2>
           <p className="text-xl font-bold opacity-80">
             내 마음이 튼튼 자라나는 곳
@@ -146,7 +146,7 @@ export default function LoginPage({
             disabled={loading}
             className="w-full py-5 bg-yellow-400 text-yellow-900 rounded-[28px] font-black text-2xl hover:bg-yellow-500 shadow-xl shadow-yellow-200 transition active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {loading ? '입장 중...' : '감자이터 입장하기!'}
+            {loading ? '입장 중...' : '감자놀이터 입장하기!'}
           </button>
 
           <button
