@@ -52,7 +52,7 @@
 | AI Sub-Backend | Flask |
 | Database | PostgreSQL |
 | AI | Swin Transformer + ConvNeXt Ensemble |
-| CI/CD & Infra | GitHub, Docker, Docker Compose, AWS EC2 |
+| CI/CD & Infra | GitHub, Docker, Docker Compose, AWS EC2, AWS RDS |
 
 ## 🏗️ 시스템 구조
 
