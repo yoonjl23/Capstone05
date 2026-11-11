@@ -52,7 +52,7 @@
 | AI Sub-Backend | Flask |
 | Database | PostgreSQL |
 | AI | Swin Transformer + ConvNeXt Ensemble |
-| CI/CD & Infra | GitHub, Docker, Docker Compose, AWS EC2, AWS RDS |
+| CI/CD & Infra | GitHub, Docker, Docker Compose, AWS EC2 |
 
 ## 🏗️ 시스템 구조
 
@@ -150,8 +150,8 @@
 | 이윤지 (팀장) | PM / AI 모델링 |
 | 변예은 | UI/UX 디자인 / 프론트엔드 |
 | 손세연 | 인터랙션 기획 / 프론트엔드 |
-| 이여진 | 데이터베이스 설계 / 백엔드 |
-| 한윤슬 | 시스템 통합 / 백엔드 |
+| 이여진 | 데이터베이스 설계, 도감 및 유저 기능 개발, 시스템 통합 / 백엔드 |
+| 한윤슬 | 게임 기능 개발, AI 서버 연동, 시스템 통합 / 백엔드 |
 
 ## 🔗 링크
 
